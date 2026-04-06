@@ -7,6 +7,8 @@ import { useState } from "react";
 const navLinks = [
   { label: "Home", path: "/" },
   { label: "Events", path: "/events" },
+  { label: "Live Arena", path: "/live" },
+  { label: "Portal Peserta", path: "/peserta" },
   { label: "Gallery", path: "/gallery" },
   { label: "Verify Certificate", path: "/verify-certificate" },
   { label: "Bonsai Passport", path: "/passport-lookup" },

@@ -9,6 +9,9 @@ import {
   FileBarChart,
   BookOpen,
   LogOut,
+  Activity,
+  Play,
+  User,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -31,19 +34,21 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Events", url: "/admin/events", icon: CalendarDays },
+  { title: "Event Control", url: "/admin/events/control", icon: Activity },
   { title: "Participants", url: "/admin/participants", icon: Users },
   { title: "Bonsai Trees", url: "/admin/bonsai", icon: TreePine },
 ];
 
 const competitionItems = [
   { title: "Judging", url: "/admin/judging", icon: Scale },
+  { title: "Live Arena", url: "/live", icon: Play },
   { title: "Ranking", url: "/admin/ranking", icon: Trophy },
   { title: "Certificates", url: "/admin/certificates", icon: Award },
-  { title: "Reports", url: "/admin/reports", icon: FileBarChart },
 ];
 
 const registryItems = [
   { title: "Bonsai Passport", url: "/admin/passports", icon: BookOpen },
+  { title: "Peserta Portal", url: "/peserta", icon: User },
 ];
 
 export function AdminSidebar() {

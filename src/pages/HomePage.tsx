@@ -71,17 +71,21 @@ export default function HomePage() {
                 className="mt-8 flex flex-wrap gap-3"
               >
                 <Link
+                  to="/live"
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-red-700 active:scale-[0.98] shadow-lg shadow-red-500/20"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                  Lihat Live Event 🔴
+                </Link>
+                <Link
                   to="/gallery"
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
                 >
                   Explore Gallery
                   <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/verify-certificate"
-                  className="inline-flex items-center gap-2 rounded-lg border bg-background px-6 py-3 text-sm font-medium transition-all hover:bg-muted active:scale-[0.98]"
-                >
-                  Verify Certificate
                 </Link>
               </motion.div>
             </div>

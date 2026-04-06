@@ -1,0 +1,50 @@
+module.exports = (sequelize, DataTypes) => {
+  const Scoring = sequelize.define('Scoring', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    participant_id: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+    judging_number: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    nebari_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    trunk_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    branch_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    composition_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    pot_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    total_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    }
+  }, {
+    tableName: 'scoring',
+    timestamps: true
+  });
+
+  Scoring.associate = (models) => {
+    Scoring.belongsTo(models.Participant, { foreignKey: 'participant_id' });
+  };
+
+  return Scoring;
+};

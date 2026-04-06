@@ -1,73 +1,150 @@
-# Welcome to your Lovable project
+# Bonsai Connect
 
-## Project info
+Platform digital untuk event bonsai PPBI yang mencakup:
+- event publik dengan window registrasi
+- registrasi peserta terhubung ke event
+- `registration_number` dan `judging_number`
+- check-in dan judging queue
+- scoring, ranking, dan live arena
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+- Frontend: React, TypeScript, Vite, React Query, Tailwind
+- Backend: Express, Sequelize, Socket.IO
+- Infra dev: Docker Compose, PostgreSQL, MinIO
 
-There are several ways of editing your application.
+## Status Saat Ini
 
-**Use Lovable**
+Sudah berjalan:
+- halaman event publik dari backend
+- halaman detail event publik
+- form registrasi publik
+- generate `registration_number`
+- generate `judging_number` dengan status `reserved`
+- check-in admin mengubah `judging_number_status` menjadi `confirmed`
+- queue judging
+- scoring otomatis dan ranking realtime
+- admin event management untuk:
+  - `publish_at`
+  - `registration_open_at`
+  - `registration_close_at`
+  - `status`
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Belum selesai:
+- RBAC `superadmin` / `admin` / `juri`
+- login end-to-end
+- halaman juri khusus
+- `judging_queue` sebagai source of truth penuh
 
-Changes made via Lovable will be committed automatically to this repo.
+Roadmap detail ada di [docs/todolist.md](docs/todolist.md).
 
-**Use your preferred IDE**
+## Struktur Repo
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```text
+src/             frontend React
+backend/         backend Express + Sequelize
+infrastructure/  docker-compose untuk development
+docs/            roadmap dan catatan implementasi
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Menjalankan Development Environment
 
-Follow these steps:
+### 1. Frontend
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Frontend default berjalan di Vite dan membaca:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_WS_URL=http://localhost:3000
+```
 
-**Use GitHub Codespaces**
+### 2. Backend + Database + MinIO via Docker
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+docker compose -f infrastructure/docker-compose.yml up -d --build backend
+```
 
-## What technologies are used for this project?
+Service dev:
+- backend: `http://localhost:3000`
+- postgres: `localhost:5432`
+- minio api: `http://localhost:9000`
+- minio console: `http://localhost:9001`
 
-This project is built with:
+### 3. Menjalankan migrasi schema
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Gunakan ini saat model backend berubah:
 
-## How can I deploy this project?
+```bash
+docker compose -f infrastructure/docker-compose.yml --profile tools run --rm backend-migrate
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Endpoint Penting
 
-## Can I connect a custom domain to my Lovable project?
+### Public
 
-Yes, you can!
+```http
+GET /api/events/public
+GET /api/events/public/:id
+POST /api/public/register
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Admin
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```http
+GET /api/events
+POST /api/events
+PUT /api/events/:id
+
+GET /api/participants
+POST /api/participants
+POST /api/participants/check-in
+
+GET /api/queue
+POST /api/scoring/submit
+GET /api/ranking
+GET /api/event-control/live-status
+```
+
+## Rule Domain Yang Dipakai
+
+- 1 peserta = 1 `registration_number`
+- 1 peserta = 1 `judging_number`
+- registrasi publik langsung membuat nomor register dan nomor penjurian
+- `judging_number_status`:
+  - `reserved` saat registrasi
+  - `confirmed` saat check-in
+- event publik hanya membuka form daftar saat window registrasi aktif
+
+## Catatan Development
+
+- backend Docker dev berjalan dengan `npm run dev`
+- migrasi dipisah ke service `backend-migrate`, tidak dijalankan di setiap boot
+- beberapa event lama mungkin masih punya field tanggal yang belum lengkap; UI sekarang sudah diberi guard agar tidak crash
+
+## Verifikasi Dasar
+
+Frontend:
+
+```bash
+npm run build
+```
+
+Backend syntax check:
+
+```bash
+node --check backend/src/controllers/eventController.js
+node --check backend/src/controllers/participantController.js
+```
+
+## Next Recommended Work
+
+1. Auth backend + schema `users`
+2. Halaman login end-to-end
+3. RBAC `superadmin` / `admin` / `juri`
+4. Halaman juri untuk scoring
+5. Audit log dan assignment juri ke event
