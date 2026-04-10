@@ -7,6 +7,7 @@ dotenv.config();
 const app = require('./app');
 const { sequelize } = require('./models');
 const { ensureDefaultUsers } = require('./bootstrap/seedUsers');
+const { initMinio } = require('./config/minio');
 
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +22,7 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
     await ensureDefaultUsers();
+    await initMinio();
     
     // In production, use migrations. For dev, sync is okay if the user wants it.
     // However, the docker-compose runs a migrate script that does this sync.
