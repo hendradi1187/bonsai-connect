@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useGet, usePost } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
 import { 
@@ -9,7 +9,9 @@ import {
   Trophy, 
   Activity,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  SkipForward,
+  Crosshair,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,14 +22,22 @@ import { toast } from "sonner";
 export default function AdminEventControl() {
   // Get active event status
   const { data: eventStatus, refetch } = useGet<any>(['event-status'], '/event-control/status');
+  const { data: queueData = [] } = useGet<any[]>(['event-control-queue'], '/queue');
   const controlMutation = usePost('/event-control/update', [['event-status']]);
+  const nextQueueMutation = usePost('/queue/next', [['judging-queue'], ['event-status'], ['event-control-queue'], ['live-arena-init']]);
+  const setCurrentMutation = usePost('/queue/set-current', [['judging-queue'], ['event-status'], ['event-control-queue'], ['live-arena-init']]);
 
   // Realtime updates
   const { lastData: realtimeStatus } = useRealtime('event-status-update', (data) => {
     console.log('Realtime update:', data);
   });
+  const { lastData: realtimeQueue } = useRealtime('queue-update');
 
-  const currentStatus = realtimeStatus || eventStatus;
+  const currentStatus = { ...(eventStatus || {}), ...(realtimeStatus || {}) };
+  const queue = realtimeQueue || queueData;
+  const currentEntries = useMemo(() => queue.filter((item) => item.queueStatus === 'current'), [queue]);
+  const waitingEntries = useMemo(() => queue.filter((item) => item.queueStatus === 'waiting'), [queue]);
+  const nextCandidate = waitingEntries[0];
 
   const handleToggleEvent = async (action: 'start' | 'stop') => {
     try {
@@ -35,6 +45,31 @@ export default function AdminEventControl() {
       toast.success(`Event ${action === 'start' ? 'started' : 'stopped'} successfully`);
     } catch (error) {
       toast.error(`Failed to ${action} event`);
+    }
+  };
+
+  const handleAdvanceQueue = async () => {
+    if (!currentEntries[0]?.eventId && !nextCandidate?.eventId) {
+      toast.error("Tidak ada event queue aktif yang bisa di-advance");
+      return;
+    }
+
+    try {
+      await nextQueueMutation.mutateAsync({
+        eventId: currentEntries[0]?.eventId || nextCandidate?.eventId,
+      });
+      toast.success("Queue advanced");
+    } catch {
+      toast.error("Failed to advance queue");
+    }
+  };
+
+  const handleSetCurrent = async (queueId: string) => {
+    try {
+      await setCurrentMutation.mutateAsync({ queueId });
+      toast.success("Current entry updated");
+    } catch {
+      toast.error("Failed to set current entry");
     }
   };
 
@@ -86,6 +121,9 @@ export default function AdminEventControl() {
               )}
               <Button variant="outline" className="w-full">
                 <Activity className="mr-2 h-4 w-4" /> Reset Real-time Data
+              </Button>
+              <Button variant="outline" className="w-full" onClick={handleAdvanceQueue} disabled={nextQueueMutation.isPending || (!currentEntries.length && !nextCandidate)}>
+                <SkipForward className="mr-2 h-4 w-4" /> Next Queue Entry
               </Button>
             </div>
           </CardContent>
@@ -152,6 +190,46 @@ export default function AdminEventControl() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Queue Control</CardTitle>
+          <CardDescription>Pilih entry yang akan dijadikan current atau lihat entry yang sedang aktif sekarang.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {queue.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+              Belum ada entry di judging queue.
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {queue.map((item) => (
+                <div key={item.queueId} className={`rounded-xl border p-4 ${item.queueStatus === 'current' ? 'border-blue-300 bg-blue-50/40' : item.queueStatus === 'done' ? 'border-emerald-200 bg-emerald-50/50' : 'bg-background'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-primary">{item.treeNumber}</span>
+                        <Badge variant={item.queueStatus === 'done' ? 'default' : 'outline'}>{item.queueStatus}</Badge>
+                      </div>
+                      <div className="mt-1 font-medium">{item.treeName}</div>
+                      <div className="text-xs text-muted-foreground">Queue #{item.queueOrder} · {item.species}</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSetCurrent(item.queueId)}
+                      disabled={item.queueStatus === 'done' || item.queueStatus === 'current' || setCurrentMutation.isPending}
+                    >
+                      <Crosshair className="mr-2 h-3.5 w-3.5" />
+                      Set Current
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Alerts/Activity */}
       <Card>

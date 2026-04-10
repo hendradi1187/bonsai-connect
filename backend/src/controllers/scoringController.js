@@ -3,6 +3,7 @@ const { getIO } = require('../websocket/handlers');
 const { calculateTotalScore, getRankingData } = require('../services/rankingService');
 const { assertParticipantAccess, getAssignedEventIds } = require('../services/accessScope');
 const { createAuditLog } = require('../services/auditService');
+const { formatQueueEntry, getCurrentQueueEntry, getQueueEntries, getQueueStats, markQueueEntryDone } = require('../services/queueService');
 
 exports.submitScore = async (req, res) => {
   try {
@@ -43,9 +44,7 @@ exports.submitScore = async (req, res) => {
       scoringRecord = await Scoring.create(scoringData);
     }
 
-    // Update participant status to 'judged'
-    participant.status = 'judged';
-    await participant.save();
+    await markQueueEntryDone(participant);
 
     // Emit real-time updates via WebSocket
     const io = getIO();
@@ -69,6 +68,7 @@ exports.submitScore = async (req, res) => {
       ? { eventIds: await getAssignedEventIds(req.user.id) }
       : {};
     const rankings = await getRankingData(rankingScope);
+    const queueEntries = await getQueueEntries();
 
     await createAuditLog(req, {
       action: 'scoring.submit',
@@ -81,12 +81,29 @@ exports.submitScore = async (req, res) => {
       },
     });
 
+    const currentQueueEntry = await getCurrentQueueEntry();
+    const queueStats = await getQueueStats();
+
     // 2. Push refreshed leaderboard and ranking table
     io.emit('judging-update', {
       type: 'leaderboard_update',
       rankings: rankings.slice(0, 10)
     });
+    io.emit('queue-update', queueEntries.map((entry) => formatQueueEntry(entry, { hidePrivateFields: true })));
     io.emit('ranking-update', rankings);
+    io.emit('event-status-update', queueStats);
+    io.emit('judging-update', {
+      type: 'stats_update',
+      stats: {
+        totalEntries: queueStats.totalCount,
+        totalJudged: queueStats.judgedCount,
+        activeViewers: 1,
+      }
+    });
+    io.emit('judging-update', {
+      type: 'current_entry_update',
+      entry: currentQueueEntry ? formatQueueEntry(currentQueueEntry) : null,
+    });
 
     res.json({
       message: 'Score submitted successfully',

@@ -50,9 +50,16 @@ interface SortableItemProps {
   item: any;
   onSelect: (item: any) => void;
   isActive: boolean;
+  isJudgeOnly: boolean;
 }
 
-function SortableQueueItem({ id, item, onSelect, isActive }: SortableItemProps) {
+const queueStatusBadgeClass: Record<string, string> = {
+  current: "bg-blue-500 hover:bg-blue-600",
+  waiting: "bg-amber-500 hover:bg-amber-600",
+  done: "bg-emerald-500 hover:bg-emerald-600",
+};
+
+function SortableQueueItem({ id, item, onSelect, isActive, isJudgeOnly }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -74,19 +81,30 @@ function SortableQueueItem({ id, item, onSelect, isActive }: SortableItemProps) 
       ref={setNodeRef} 
       style={style} 
       className={`group relative flex items-center gap-3 rounded-lg border p-3 transition-all hover:border-primary/50 ${
-        isActive ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'bg-card'
+        isActive ? 'border-primary bg-primary/5 ring-1 ring-primary' : item.queueStatus === 'current' ? 'border-blue-300 bg-blue-50/40' : 'bg-card'
       }`}
     >
-      <div {...attributes} {...listeners} className="cursor-grab p-1 text-muted-foreground hover:text-foreground">
-        <GripVertical className="h-4 w-4" />
-      </div>
+      {!isJudgeOnly && item.queueStatus !== 'done' && (
+        <div {...attributes} {...listeners} className="cursor-grab p-1 text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
+      {(isJudgeOnly || item.queueStatus === 'done') && (
+        <div className="p-1 text-muted-foreground">
+          <GripVertical className="h-4 w-4 opacity-30" />
+        </div>
+      )}
       <div className="flex-1 cursor-pointer" onClick={() => onSelect(item)}>
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] font-bold text-primary">{item.treeNumber}</span>
-          {item.status === 'judged' && <Badge className="bg-emerald-500 hover:bg-emerald-600 h-4 px-1.5 text-[9px]">Judged</Badge>}
+          <Badge className={`${queueStatusBadgeClass[item.queueStatus] || "bg-slate-500 hover:bg-slate-600"} h-4 px-1.5 text-[9px]`}>
+            {item.queueStatus}
+          </Badge>
         </div>
         <p className="font-medium text-sm truncate">{item.treeName}</p>
-        <p className="text-[10px] text-muted-foreground truncate">{item.species}</p>
+        <p className="text-[10px] text-muted-foreground truncate">
+          #{item.queueOrder} · {item.species}
+        </p>
       </div>
       <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
@@ -120,6 +138,7 @@ interface SubmitScoreResponse {
 export default function AdminJudgingPage() {
   const { user } = useAuth();
   const [queue, setQueue] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [scores, setScores] = useState<ScorePayload>({
@@ -158,14 +177,16 @@ export default function AdminJudgingPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = queue.findIndex((i) => i.id === active.id);
-      const newIndex = queue.findIndex((i) => i.id === over.id);
+      const oldIndex = queue.findIndex((i) => i.queueId === active.id);
+      const newIndex = queue.findIndex((i) => i.queueId === over.id);
       const newQueue = arrayMove(queue, oldIndex, newIndex);
       setQueue(newQueue);
       
       try {
         await updateQueueMutation.mutateAsync({ 
-          items: newQueue.map((item, index) => ({ id: item.id, order: index })) 
+          items: newQueue
+            .filter((item) => item.queueStatus !== 'done')
+            .map((item, index) => ({ id: item.queueId, order: index + 1 })) 
         });
       } catch (err) {
         toast.error("Failed to update queue order");
@@ -194,6 +215,7 @@ export default function AdminJudgingPage() {
       const nextSelectedItem = {
         ...selectedItem,
         status: 'judged',
+        queueStatus: 'done',
         scores: response.scores,
         totalScore: response.totalScore,
       };
@@ -213,6 +235,13 @@ export default function AdminJudgingPage() {
   };
 
   const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+  const visibleQueue = queue.filter((item) =>
+    [item.treeNumber, item.treeName, item.species]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search.toLowerCase()))
+  );
+  const activeQueueItems = visibleQueue.filter((item) => item.queueStatus !== 'done');
+  const completedQueueItems = visibleQueue.filter((item) => item.queueStatus === 'done');
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-6 overflow-hidden">
@@ -236,7 +265,12 @@ export default function AdminJudgingPage() {
             </div>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search tree number or name..." className="pl-8" />
+              <Input
+                placeholder="Search tree number or name..."
+                className="pl-8"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
           </div>
           <CardContent className="flex-1 overflow-y-auto p-4 scrollbar-hide">
@@ -246,32 +280,46 @@ export default function AdminJudgingPage() {
               </div>
             ) : isJudgeOnly ? (
               <div className="space-y-3">
-                {queue.map((item) => (
+                {visibleQueue.map((item) => (
                   <SortableQueueItem 
-                    key={item.id} 
-                    id={item.id} 
+                    key={item.queueId} 
+                    id={item.queueId} 
                     item={item} 
                     onSelect={handleOpenScoring}
                     isActive={selectedItem?.id === item.id}
+                    isJudgeOnly={isJudgeOnly}
                   />
                 ))}
               </div>
             ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={queue} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-3">
-                    {queue.map((item) => (
-                      <SortableQueueItem 
-                        key={item.id} 
-                        id={item.id} 
-                        item={item} 
-                        onSelect={handleOpenScoring}
-                        isActive={selectedItem?.id === item.id}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+              <div className="space-y-3">
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={activeQueueItems.map((item) => item.queueId)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-3">
+                      {activeQueueItems.map((item) => (
+                        <SortableQueueItem 
+                          key={item.queueId} 
+                          id={item.queueId} 
+                          item={item} 
+                          onSelect={handleOpenScoring}
+                          isActive={selectedItem?.id === item.id}
+                          isJudgeOnly={isJudgeOnly}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                {completedQueueItems.map((item) => (
+                  <SortableQueueItem 
+                    key={item.queueId} 
+                    id={item.queueId} 
+                    item={item} 
+                    onSelect={handleOpenScoring}
+                    isActive={selectedItem?.id === item.id}
+                    isJudgeOnly={true}
+                  />
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -293,19 +341,22 @@ export default function AdminJudgingPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="passport-id">{selectedItem.treeNumber}</span>
-                        {selectedItem.status === 'judged' && (
-                          <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10 border-emerald-200">
-                            Already Judged
-                          </Badge>
-                        )}
+                        <Badge className={`${queueStatusBadgeClass[selectedItem.queueStatus] || "bg-slate-500"} border-transparent`}>
+                          {selectedItem.queueStatus}
+                        </Badge>
                       </div>
                       <h2 className="mt-1 font-display text-xl font-bold">{selectedItem.treeName}</h2>
                       <p className="text-sm italic text-muted-foreground">{selectedItem.species}</p>
                     </div>
                   </div>
-                  <Button size="lg" className="sm:w-auto" onClick={() => setIsScoringModalOpen(true)}>
+                  <Button
+                    size="lg"
+                    className="sm:w-auto"
+                    onClick={() => setIsScoringModalOpen(true)}
+                    disabled={selectedItem.queueStatus === 'done'}
+                  >
                     <Scale className="mr-2 h-4 w-4" /> 
-                    {selectedItem.status === 'judged' ? 'Edit Scores' : 'Start Scoring'}
+                    {selectedItem.queueStatus === 'done' ? 'Already Finalized' : selectedItem.queueStatus === 'current' ? 'Score Current Entry' : 'Score Selected Entry'}
                   </Button>
                 </div>
               </div>
@@ -347,7 +398,7 @@ export default function AdminJudgingPage() {
                     </div>
                   </div>
 
-                  {selectedItem.status === 'judged' && (
+                  {selectedItem.queueStatus === 'done' && (
                     <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-6">
                        <h3 className="mb-4 font-display text-lg font-semibold text-emerald-800">Final Results</h3>
                        <div className="flex items-end justify-between">

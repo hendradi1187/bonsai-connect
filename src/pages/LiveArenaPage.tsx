@@ -31,6 +31,9 @@ export default function LiveArenaPage() {
     if (data.type === 'score_update') {
       setCurrentJudging(data.entry);
     }
+    if (data.type === 'current_entry_update') {
+      setCurrentJudging(data.entry);
+    }
     if (data.type === 'leaderboard_update') {
       setLeaderboard(data.rankings);
     }

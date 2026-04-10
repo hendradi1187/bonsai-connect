@@ -1,11 +1,17 @@
 const { Op } = require('sequelize');
 const { Event, Participant, Bonsai, Scoring } = require('../models');
+const { createAuditLog } = require('../services/auditService');
+const { enqueueParticipant, formatQueueEntry, getQueueEntries, getQueueStats } = require('../services/queueService');
+const { getIO } = require('../websocket/handlers');
 
 const DEFAULT_CITY = 'Depok';
 
 const padSequence = (value) => String(value).padStart(4, '0');
 
-const getEventYear = (event) => new Date(event.start_date || event.date).getFullYear();
+const getEventYear = (event) => {
+  const date = new Date(event.start_date || event.date || Date.now());
+  return Number.isNaN(date.getTime()) ? new Date().getFullYear() : date.getFullYear();
+};
 
 const isRegistrationOpen = (event) => {
   const now = new Date();
@@ -308,6 +314,27 @@ exports.checkIn = async (req, res) => {
         photo_url: photoUrl || null
       });
     }
+
+    const queueEntry = await enqueueParticipant(participant);
+
+    await createAuditLog(req, {
+      action: 'participant.check_in',
+      entityType: 'participant',
+      entityId: participant.id,
+      metadata: {
+        eventId: participant.event_id,
+        queueId: queueEntry.id,
+        queueStatus: queueEntry.status,
+        judgingNumber: participant.judging_number,
+      },
+    });
+
+    const io = getIO();
+    const queueEntries = await getQueueEntries();
+    io.emit('queue-update', queueEntries.map((entry) => formatQueueEntry(entry, { hidePrivateFields: true })));
+    io.emit('event-status-update', {
+      ...(await getQueueStats()),
+    });
     
     res.json({
       participant: {
@@ -325,6 +352,11 @@ exports.checkIn = async (req, res) => {
         species: bonsai.species,
         sizeCategory: bonsai.size_category,
         photoUrl: bonsai.photo_url
+      },
+      queue: {
+        id: queueEntry.id,
+        status: queueEntry.status,
+        order: queueEntry.queue_order,
       }
     });
   } catch (error) {

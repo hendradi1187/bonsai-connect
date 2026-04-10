@@ -217,16 +217,16 @@ Judging
 
 ## Phase 3 - Judging Queue
 
-- [ ] Gunakan tabel `judging_queue` sebagai sumber kebenaran queue
-- [ ] Status queue:
+- [x] Gunakan tabel `judging_queue` sebagai sumber kebenaran queue
+- [x] Status queue:
   - waiting
   - current
   - done
-- [ ] Queue hanya berisi peserta yang:
+- [x] Queue hanya berisi peserta yang:
   - registration valid
   - check-in selesai
   - judging_number confirmed
-- [ ] Admin bisa:
+- [x] Admin bisa:
   - reorder queue
   - remove dari queue
   - mark current
