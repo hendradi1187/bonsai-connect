@@ -92,6 +92,7 @@ const formatEvent = async (event) => {
     registrationCloseAt: event.registration_close_at || new Date(new Date(event.start_date || event.date).getTime() - (24 * 60 * 60 * 1000)),
     status: registrationStatus,
     configuredStatus: event.status,
+    isLocked: event.is_locked ?? false,
     totalParticipants,
     totalBonsai,
     registrationAvailable: registrationStatus === 'registration_open',
@@ -136,6 +137,20 @@ exports.getPublicEventById = async (req, res) => {
     }
 
     res.json(await formatEvent(event));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.toggleLock = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    event.is_locked = !event.is_locked;
+    await event.save();
+
+    res.json({ id: event.id, isLocked: event.is_locked });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

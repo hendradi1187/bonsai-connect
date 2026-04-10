@@ -406,3 +406,44 @@ exports.checkIn = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+
+exports.overrideJudgingNumber = async (req, res) => {
+  try {
+    const { judgingNumber, judgingNumberStatus } = req.body;
+
+    if (!judgingNumber) {
+      return res.status(400).json({ message: 'judgingNumber is required' });
+    }
+
+    const participant = await Participant.findByPk(req.params.id);
+    if (!participant) return res.status(404).json({ message: 'Participant not found' });
+
+    // Check uniqueness (skip self)
+    const { Op } = require('sequelize');
+    const conflict = await Participant.findOne({
+      where: { judging_number: judgingNumber, id: { [Op.ne]: participant.id } },
+    });
+    if (conflict) return res.status(409).json({ message: 'Judging number already assigned to another participant' });
+
+    const previous = participant.judging_number;
+    participant.judging_number = judgingNumber;
+    if (judgingNumberStatus) participant.judging_number_status = judgingNumberStatus;
+    await participant.save();
+
+    await createAuditLog(req, {
+      action: 'participant.override_judging_number',
+      entityType: 'participant',
+      entityId: participant.id,
+      metadata: { previous, judgingNumber, judgingNumberStatus: participant.judging_number_status },
+    });
+
+    res.json({
+      message: 'Judging number overridden',
+      judgingNumber: participant.judging_number,
+      judgingNumberStatus: participant.judging_number_status,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

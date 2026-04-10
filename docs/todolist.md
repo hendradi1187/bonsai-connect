@@ -196,7 +196,7 @@ Judging
   - waiting
   - judging
   - judged
-- [ ] Tambahkan filter:
+- [x] Tambahkan filter:
   - per event
   - per status
   - nomor registrasi
@@ -418,7 +418,7 @@ Juri tidak melihat identitas peserta
 ### Superadmin
 
 - [x] Buat role `superadmin`
-- [ ] `superadmin` bisa:
+- [x] `superadmin` bisa:
   - create user
   - assign role
   - manage event
@@ -474,7 +474,7 @@ updated_at
   - authenticate
   - authorizeRole
 - [x] Semua route admin/juri wajib protected
-- [ ] Tambahkan audit log login dan aktivitas penting
+- [x] Tambahkan audit log login dan aktivitas penting
 - [x] Tambahkan audit log login dan aktivitas penting
 
 ### Juri Scoring Page
@@ -498,7 +498,7 @@ updated_at
 ### Judge Assignment
 
 - [x] Tambah konsep assignment juri ke event / sesi
-- [ ] `superadmin` atau `admin` bisa assign juri ke event
+- [x] `superadmin` atau `admin` bisa assign juri ke event
 - [x] Juri hanya melihat event dan queue yang di-assign ke dirinya
 
 ### Protected Frontend Routes

@@ -34,6 +34,11 @@ module.exports = (sequelize, DataTypes) => {
     status: {
       type: DataTypes.ENUM('draft', 'published', 'registration_open', 'registration_closed', 'ongoing', 'finished'),
       defaultValue: 'draft'
+    },
+    is_locked: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
     }
   }, {
     tableName: 'events',

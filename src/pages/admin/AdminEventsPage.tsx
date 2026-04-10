@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { useGet, usePost, usePut } from "@/hooks/useApi";
-import { Plus, CalendarDays, MapPin, Clock3, Pencil } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/services/api";
+import { Plus, CalendarDays, MapPin, Clock3, Pencil, Lock, Unlock } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +23,7 @@ interface EventRow {
   registrationCloseAt: string;
   status: string;
   configuredStatus: string;
+  isLocked: boolean;
   totalParticipants: number;
   totalBonsai: number;
 }
@@ -98,7 +102,23 @@ const getRuntimeStatusFromTimeline = (form: {
 };
 
 export default function AdminEventsPage() {
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === "superadmin";
+  const queryClient = useQueryClient();
+
   const { data: events, isLoading } = useGet<EventRow[]>(["events"], "/events");
+
+  const lockMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const res = await api.put(`/events/${eventId}/lock`, {});
+      return res.data as { id: string; isLocked: boolean };
+    },
+    onSuccess: async (data) => {
+      toast.success(data.isLocked ? "Event dikunci" : "Event dibuka");
+      await queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: () => toast.error("Gagal mengubah status kunci"),
+  });
   const createEventMutation = usePost<Record<string, string>, EventRow>("/events", [["events"], ["public-events"]]);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const updateEventMutation = usePut<Record<string, string>, EventRow>(
@@ -221,6 +241,11 @@ export default function AdminEventsPage() {
                   <h3 className="font-display text-xl font-semibold">{event.name}</h3>
                   <Badge className={statusColors[event.status] || statusColors.draft}>{event.status}</Badge>
                   <Badge variant="outline">configured: {event.configuredStatus}</Badge>
+                  {event.isLocked && (
+                    <Badge className="bg-red-100 text-red-700">
+                      <Lock className="mr-1 h-3 w-3" /> Locked
+                    </Badge>
+                  )}
                 </div>
                 <p className="max-w-3xl text-sm text-muted-foreground">{event.description}</p>
                 <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
@@ -243,11 +268,26 @@ export default function AdminEventsPage() {
                     <span className="font-mono">{formatDateTime(event.registrationCloseAt)}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border p-4 text-sm">
+                <div className="flex items-center justify-between rounded-2xl border p-4 text-sm gap-2 flex-wrap">
                   <span>{event.totalParticipants} peserta · {event.totalBonsai} bonsai</span>
-                  <Button variant="outline" onClick={() => openEditDialog(event)}>
-                    <Pencil className="h-4 w-4 mr-2" /> Edit
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isSuperadmin && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => lockMutation.mutate(event.id)}
+                        disabled={lockMutation.isPending}
+                        className={event.isLocked ? "border-red-200 text-red-700 hover:bg-red-50" : ""}
+                      >
+                        {event.isLocked
+                          ? <><Unlock className="h-3.5 w-3.5 mr-1.5" /> Unlock</>
+                          : <><Lock className="h-3.5 w-3.5 mr-1.5" /> Lock</>}
+                      </Button>
+                    )}
+                    <Button variant="outline" onClick={() => openEditDialog(event)}>
+                      <Pencil className="h-4 w-4 mr-2" /> Edit
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
