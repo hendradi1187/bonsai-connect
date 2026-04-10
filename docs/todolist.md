@@ -244,11 +244,11 @@ Judging
 
 ## Phase 5 - Dashboard Peserta
 
-- [ ] Peserta lookup dengan:
+- [x] Peserta lookup dengan:
   - phone
   - registration_number
   - judging_number
-- [ ] Dashboard peserta tampilkan:
+- [x] Dashboard peserta tampilkan:
   - event
   - registration_number
   - judging_number

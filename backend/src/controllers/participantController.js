@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Event, Participant, Bonsai, Scoring } = require('../models');
+const { getRankingData } = require('../services/rankingService');
 const { createAuditLog } = require('../services/auditService');
 const { enqueueParticipant, formatQueueEntry, getQueueEntries, getQueueStats } = require('../services/queueService');
 const { getIO } = require('../websocket/handlers');
@@ -241,33 +242,75 @@ exports.registerPublic = async (req, res) => {
 
 exports.lookup = async (req, res) => {
   try {
-    const { phone } = req.query;
-    if (!phone) return res.status(400).json({ message: 'Phone number required' });
-    
+    const { phone, registration_number, judging_number } = req.query;
+
+    if (!phone && !registration_number && !judging_number) {
+      return res.status(400).json({ message: 'Provide phone, registration_number, or judging_number' });
+    }
+
+    const where = {};
+    if (phone) where.phone = phone;
+    else if (registration_number) where.registration_number = registration_number;
+    else if (judging_number) where.judging_number = judging_number;
+
     const participant = await Participant.findOne({
-      where: { phone },
-      include: [Bonsai, Scoring]
+      where,
+      include: [
+        { model: Bonsai },
+        { model: Event },
+        { model: Scoring, as: 'Scorings', where: { judge_id: null }, required: false },
+      ],
     });
-    
+
     if (!participant) return res.status(404).json({ message: 'Participant not found' });
-    
-    // Format for Peserta Dashboard
+
+    const aggregate = participant.Scorings?.[0] || null;
+
+    // Get ranking position if judged
+    let rank = null;
+    if (participant.status === 'judged' && aggregate) {
+      const rankings = await getRankingData({ eventIds: [participant.event_id] });
+      const entry = rankings.find((r) => r.id === participant.id);
+      rank = entry?.rank ?? null;
+    }
+
     const formatted = {
       id: participant.id,
       name: participant.name,
       city: participant.city || DEFAULT_CITY,
-      trees: participant.Bonsais.map(b => ({
+      registrationNumber: participant.registration_number,
+      judgingNumber: participant.judging_number,
+      judgingNumberStatus: participant.judging_number_status,
+      status: participant.status,
+      event: participant.Event
+        ? {
+            id: participant.Event.id,
+            name: participant.Event.name,
+            location: participant.Event.location,
+            startDate: participant.Event.start_date,
+            endDate: participant.Event.end_date,
+          }
+        : null,
+      rank,
+      totalScore: aggregate ? Number(aggregate.total_score) : null,
+      scores: aggregate
+        ? {
+            nebari: Number(aggregate.nebari_score),
+            trunk: Number(aggregate.trunk_score),
+            branch: Number(aggregate.branch_score),
+            composition: Number(aggregate.composition_score),
+            pot: Number(aggregate.pot_score),
+          }
+        : null,
+      bonsai: participant.Bonsais.map((b) => ({
         id: b.id,
-        treeNumber: participant.judging_number || 'TBD',
-        treeName: b.name,
+        name: b.name,
         species: b.species,
-        imageUrl: b.photo_url,
         sizeCategory: b.size_category,
-        status: participant.status,
-        totalScore: participant.Scoring ? participant.Scoring.total_score : 0
-      }))
+        imageUrl: b.photo_url,
+      })),
     };
-    
+
     res.json(formatted);
   } catch (error) {
     res.status(500).json({ message: error.message });
