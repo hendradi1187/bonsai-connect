@@ -3,11 +3,12 @@ const router = express.Router();
 const multer = require('multer');
 const { minioClient, bucketName } = require('../config/minio');
 const { v4: uuidv4 } = require('uuid');
+const { authenticate, authorizeRole } = require('../middleware/auth');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', authenticate, authorizeRole('superadmin', 'admin'), upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });

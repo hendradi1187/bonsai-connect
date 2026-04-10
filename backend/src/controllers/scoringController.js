@@ -1,6 +1,8 @@
 const { Scoring, Participant, Bonsai } = require('../models');
 const { getIO } = require('../websocket/handlers');
 const { calculateTotalScore, getRankingData } = require('../services/rankingService');
+const { assertParticipantAccess, getAssignedEventIds } = require('../services/accessScope');
+const { createAuditLog } = require('../services/auditService');
 
 exports.submitScore = async (req, res) => {
   try {
@@ -12,6 +14,11 @@ exports.submitScore = async (req, res) => {
     
     if (!participant) {
       return res.status(404).json({ message: 'Participant not found' });
+    }
+
+    const hasAccess = await assertParticipantAccess(req.user, participant);
+    if (!hasAccess) {
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
     const { normalizedScores, totalScore } = calculateTotalScore(scores);
@@ -58,7 +65,21 @@ exports.submitScore = async (req, res) => {
       }
     });
 
-    const rankings = await getRankingData();
+    const rankingScope = req.user?.role === 'juri'
+      ? { eventIds: await getAssignedEventIds(req.user.id) }
+      : {};
+    const rankings = await getRankingData(rankingScope);
+
+    await createAuditLog(req, {
+      action: 'scoring.submit',
+      entityType: 'participant',
+      entityId: participant.id,
+      metadata: {
+        eventId: participant.event_id,
+        judgingNumber: participant.judging_number,
+        totalScore,
+      },
+    });
 
     // 2. Push refreshed leaderboard and ranking table
     io.emit('judging-update', {

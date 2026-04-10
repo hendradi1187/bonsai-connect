@@ -408,16 +408,16 @@ Juri tidak melihat identitas peserta
 
 ### RBAC
 
-- [ ] Tambah sistem RBAC aplikasi
-- [ ] Role minimum:
+- [x] Tambah sistem RBAC aplikasi
+- [x] Role minimum:
   - `superadmin`
   - `admin`
   - `juri`
-- [ ] Definisikan permission per role
+- [x] Definisikan permission per role
 
 ### Superadmin
 
-- [ ] Buat role `superadmin`
+- [x] Buat role `superadmin`
 - [ ] `superadmin` bisa:
   - create user
   - assign role
@@ -425,18 +425,19 @@ Juri tidak melihat identitas peserta
   - lock/unlock event
   - override judging number bila diperlukan
   - lihat audit log
-- [ ] Tambahkan halaman manajemen user untuk `superadmin`
+- [x] Tambahkan halaman manajemen user untuk `superadmin`
+- [x] CRUD user superadmin yang benar-benar fungsional
 
 ### Role Juri
 
-- [ ] Buat role `juri`
-- [ ] `juri` hanya bisa:
+- [x] Buat role `juri`
+- [x] `juri` hanya bisa:
   - login
   - melihat queue/jadwal penilaian yang diberikan
   - membuka halaman penilaian
   - mengisi score
   - submit score
-- [ ] `juri` tidak boleh:
+- [x] `juri` tidak boleh:
   - melihat identitas privat peserta
   - mengubah event
   - mengubah queue global
@@ -444,19 +445,19 @@ Juri tidak melihat identitas peserta
 
 ### Login End-to-End
 
-- [ ] Buat halaman login frontend terhubung ke backend
-- [ ] Backend auth minimal:
+- [x] Buat halaman login frontend terhubung ke backend
+- [x] Backend auth minimal:
   - `POST /api/auth/login`
   - `POST /api/auth/logout`
   - `GET /api/auth/me`
-- [ ] Pakai JWT atau session token
-- [ ] Frontend simpan token dengan aman
-- [ ] Tambahkan route protection berbasis role
-- [ ] Redirect user sesuai role setelah login
+- [x] Pakai JWT atau session token
+- [x] Frontend simpan token dengan aman
+- [x] Tambahkan route protection berbasis role
+- [x] Redirect user sesuai role setelah login
 
 ### Backend Auth And User Schema
 
-- [ ] Tambah table `users`
+- [x] Tambah table `users`
 
 ```sql
 id
@@ -469,47 +470,48 @@ created_at
 updated_at
 ```
 
-- [ ] Tambah middleware:
+- [x] Tambah middleware:
   - authenticate
   - authorizeRole
-- [ ] Semua route admin/juri wajib protected
+- [x] Semua route admin/juri wajib protected
 - [ ] Tambahkan audit log login dan aktivitas penting
+- [x] Tambahkan audit log login dan aktivitas penting
 
 ### Juri Scoring Page
 
-- [ ] Buat halaman khusus `juri`
-- [ ] Halaman juri menampilkan:
+- [x] Buat halaman khusus `juri`
+- [x] Halaman juri menampilkan:
   - entry yang sedang dinilai
   - nomor penjurian
   - data bonsai yang boleh dilihat juri
   - form score per kriteria
   - tombol submit
-- [ ] Halaman juri tidak menampilkan:
+- [x] Halaman juri tidak menampilkan:
   - nama peserta
   - kontak peserta
   - identitas privat lain
-- [ ] Setelah submit:
+- [x] Setelah submit:
   - score tersimpan ke backend
   - ranking ter-update
   - jika perlu, lanjut ke entry berikutnya
 
 ### Judge Assignment
 
-- [ ] Tambah konsep assignment juri ke event / sesi
+- [x] Tambah konsep assignment juri ke event / sesi
 - [ ] `superadmin` atau `admin` bisa assign juri ke event
-- [ ] Juri hanya melihat event dan queue yang di-assign ke dirinya
+- [x] Juri hanya melihat event dan queue yang di-assign ke dirinya
 
 ### Protected Frontend Routes
 
-- [ ] Tambahkan halaman:
+- [x] Tambahkan halaman:
   - `/login`
-  - `/superadmin/users`
+  - `/admin/users`
   - `/judge`
-- [ ] Pisahkan layout:
+- [x] Pisahkan layout:
   - public layout
   - admin layout
   - judge layout
-- [ ] Jika token invalid atau expired:
+- [x] Jika token invalid atau expired:
   - logout otomatis
   - redirect ke login
 

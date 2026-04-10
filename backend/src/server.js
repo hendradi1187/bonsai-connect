@@ -6,6 +6,7 @@ dotenv.config();
 
 const app = require('./app');
 const { sequelize } = require('./models');
+const { ensureDefaultUsers } = require('./bootstrap/seedUsers');
 
 const PORT = process.env.PORT || 3000;
 
@@ -19,6 +20,7 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
+    await ensureDefaultUsers();
     
     // In production, use migrations. For dev, sync is okay if the user wants it.
     // However, the docker-compose runs a migrate script that does this sync.

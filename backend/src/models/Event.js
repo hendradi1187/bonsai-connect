@@ -44,6 +44,7 @@ module.exports = (sequelize, DataTypes) => {
     Event.hasMany(models.Participant, { foreignKey: 'event_id' });
     Event.hasMany(models.JudgingQueue, { foreignKey: 'event_id' });
     Event.hasOne(models.EventRuntime, { foreignKey: 'event_id' });
+    Event.hasMany(models.JudgeAssignment, { foreignKey: 'event_id' });
   };
 
   return Event;

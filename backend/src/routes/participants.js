@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const participantController = require('../controllers/participantController');
+const { authenticate, authorizeRole } = require('../middleware/auth');
 
-router.get('/', participantController.getAll);
-router.post('/', participantController.create);
 router.get('/lookup', participantController.lookup);
-router.post('/check-in', participantController.checkIn);
+router.get('/', authenticate, authorizeRole('superadmin', 'admin'), participantController.getAll);
+router.post('/', authenticate, authorizeRole('superadmin', 'admin'), participantController.create);
+router.post('/check-in', authenticate, authorizeRole('superadmin', 'admin'), participantController.checkIn);
 
 module.exports = router;

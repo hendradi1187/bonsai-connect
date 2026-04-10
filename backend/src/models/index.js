@@ -7,6 +7,9 @@ const Bonsai = require('./Bonsai');
 const JudgingQueue = require('./JudgingQueue');
 const Scoring = require('./Scoring');
 const EventRuntime = require('./EventRuntime');
+const User = require('./User');
+const AuditLog = require('./AuditLog');
+const JudgeAssignment = require('./JudgeAssignment');
 
 // Define models
 const models = {
@@ -16,6 +19,9 @@ const models = {
   JudgingQueue: JudgingQueue(sequelize, DataTypes),
   Scoring: Scoring(sequelize, DataTypes),
   EventRuntime: EventRuntime(sequelize, DataTypes),
+  User: User(sequelize, DataTypes),
+  AuditLog: AuditLog(sequelize, DataTypes),
+  JudgeAssignment: JudgeAssignment(sequelize, DataTypes),
 };
 
 // Define associations

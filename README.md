@@ -24,6 +24,14 @@ Sudah berjalan:
 - check-in admin mengubah `judging_number_status` menjadi `confirmed`
 - queue judging
 - scoring otomatis dan ranking realtime
+- auth backend dengan JWT
+- halaman login end-to-end ke backend
+- RBAC dasar `superadmin` / `admin` / `juri`
+- route protection frontend dan backend
+- CRUD user superadmin
+- audit log login dan aktivitas penting
+- assignment juri ke event
+- workspace juri untuk scoring dengan layout terpisah
 - admin event management untuk:
   - `publish_at`
   - `registration_open_at`
@@ -31,9 +39,8 @@ Sudah berjalan:
   - `status`
 
 Belum selesai:
-- RBAC `superadmin` / `admin` / `juri`
-- login end-to-end
-- halaman juri khusus
+- assignment juri berbasis sesi yang lebih detail
+- audit log yang lebih luas untuk seluruh domain event
 - `judging_queue` sebagai source of truth penuh
 
 Roadmap detail ada di [docs/todolist.md](docs/todolist.md).
@@ -96,6 +103,20 @@ POST /api/public/register
 ### Admin
 
 ```http
+POST /api/auth/login
+POST /api/auth/logout
+GET /api/auth/me
+
+GET /api/admin/users
+POST /api/admin/users
+PUT /api/admin/users/:id
+
+GET /api/admin/judge-assignments
+POST /api/admin/judge-assignments
+PUT /api/admin/judge-assignments/:id
+
+GET /api/admin/audit-logs
+
 GET /api/events
 POST /api/events
 PUT /api/events/:id
@@ -108,6 +129,16 @@ GET /api/queue
 POST /api/scoring/submit
 GET /api/ranking
 GET /api/event-control/live-status
+```
+
+## Akun Development Default
+
+Backend otomatis membuat akun berikut saat startup:
+
+```text
+superadmin@ppbi.local / superadmin123
+admin@ppbi.local / admin12345
+juri@ppbi.local / juri12345
 ```
 
 ## Rule Domain Yang Dipakai
@@ -143,8 +174,8 @@ node --check backend/src/controllers/participantController.js
 
 ## Next Recommended Work
 
-1. Auth backend + schema `users`
-2. Halaman login end-to-end
-3. RBAC `superadmin` / `admin` / `juri`
-4. Halaman juri untuk scoring
-5. Audit log dan assignment juri ke event
+1. CRUD user lengkap untuk `superadmin`
+2. Assignment juri ke event / sesi yang lebih granular
+3. Audit log yang lebih luas untuk semua aksi domain penting
+4. Aktifkan `judging_queue` sebagai source of truth penuh
+5. Tambahkan filter dan dashboard operasional superadmin yang lebih dalam

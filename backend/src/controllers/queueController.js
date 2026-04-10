@@ -1,13 +1,16 @@
 const { Op } = require('sequelize');
 const { Participant, Bonsai, Scoring } = require('../models');
 const { mapCriterionScores } = require('../services/rankingService');
+const { getParticipantScope } = require('../services/accessScope');
 
 exports.getQueue = async (req, res) => {
   try {
     // In a real app, this would use a dedicated Queue table or order column
     // For now, let's get participants who are checked_in/waiting but not yet judged
+    const accessScope = await getParticipantScope(req.user);
     const queue = await Participant.findAll({
       where: {
+        ...accessScope,
         status: {
           [Op.in]: ['checked_in', 'waiting', 'judging']
         }
@@ -16,14 +19,17 @@ exports.getQueue = async (req, res) => {
       order: [['updatedAt', 'ASC']]
     });
 
+    const isJudgeOnly = req.user?.role === 'juri';
+
     const formatted = queue.map(p => ({
       id: p.id,
+      eventId: p.event_id,
       treeNumber: p.judging_number,
       treeName: p.Bonsais?.[0]?.name || 'Unknown',
       species: p.Bonsais?.[0]?.species || 'Unknown',
       imageUrl: p.Bonsais?.[0]?.photo_url,
-      ownerName: p.name,
-      city: p.city || 'Depok',
+      ownerName: isJudgeOnly ? null : p.name,
+      city: isJudgeOnly ? null : (p.city || 'Depok'),
       status: p.status,
       scores: mapCriterionScores(p.Scoring),
       totalScore: p.Scoring ? p.Scoring.total_score : 0

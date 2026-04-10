@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Participant, Bonsai, Scoring } = require('../models');
 
 const SCORE_KEYS = ['nebari', 'trunk', 'branch', 'composition', 'pot'];
@@ -60,11 +61,19 @@ const formatRankingRow = (participant, index, previousScore) => {
   };
 };
 
-const getRankingData = async ({ category, limit } = {}) => {
+const getRankingData = async ({ category, limit, eventIds } = {}) => {
+  const participantWhere = {
+    status: 'judged',
+  };
+
+  if (Array.isArray(eventIds)) {
+    participantWhere.event_id = {
+      [Op.in]: eventIds,
+    };
+  }
+
   const participants = await Participant.findAll({
-    where: {
-      status: 'judged',
-    },
+    where: participantWhere,
     include: [
       { model: Bonsai },
       { model: Scoring, required: true },

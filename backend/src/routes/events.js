@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const eventController = require('../controllers/eventController');
+const { authenticate, authorizeRole } = require('../middleware/auth');
 
-router.get('/', eventController.getAdminEvents);
 router.get('/public', eventController.getPublicEvents);
 router.get('/public/:id', eventController.getPublicEventById);
-router.post('/', eventController.createEvent);
-router.put('/:id', eventController.updateEvent);
+router.get('/', authenticate, authorizeRole('superadmin', 'admin'), eventController.getAdminEvents);
+router.post('/', authenticate, authorizeRole('superadmin', 'admin'), eventController.createEvent);
+router.put('/:id', authenticate, authorizeRole('superadmin', 'admin'), eventController.updateEvent);
 
 module.exports = router;

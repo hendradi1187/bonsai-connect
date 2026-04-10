@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useGet, usePost } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   DndContext, 
   closestCenter,
@@ -117,6 +118,7 @@ interface SubmitScoreResponse {
 // --- Main Page ---
 
 export default function AdminJudgingPage() {
+  const { user } = useAuth();
   const [queue, setQueue] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
@@ -140,6 +142,8 @@ export default function AdminJudgingPage() {
   const { lastData: realtimeQueue } = useRealtime('queue-update', (data) => {
     if (data) setQueue(data);
   });
+
+  const isJudgeOnly = user?.role === 'juri';
 
   useEffect(() => {
     if (queueData) setQueue(queueData);
@@ -214,7 +218,9 @@ export default function AdminJudgingPage() {
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-6 overflow-hidden">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Digital Judging System</h1>
-        <p className="text-sm text-muted-foreground">Manage judging queue and submit real-time scores</p>
+        <p className="text-sm text-muted-foreground">
+          {isJudgeOnly ? 'Lihat antrean penilaian dan submit score sesuai akses juri.' : 'Manage judging queue and submit real-time scores'}
+        </p>
       </div>
 
       <div className="grid flex-1 grid-cols-1 gap-6 overflow-hidden lg:grid-cols-3">
@@ -237,6 +243,18 @@ export default function AdminJudgingPage() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map(i => <div key={i} className="h-16 w-full animate-pulse rounded-lg bg-muted" />)}
+              </div>
+            ) : isJudgeOnly ? (
+              <div className="space-y-3">
+                {queue.map((item) => (
+                  <SortableQueueItem 
+                    key={item.id} 
+                    id={item.id} 
+                    item={item} 
+                    onSelect={handleOpenScoring}
+                    isActive={selectedItem?.id === item.id}
+                  />
+                ))}
               </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -297,17 +315,21 @@ export default function AdminJudgingPage() {
                   <div className="rounded-xl border bg-background p-6 shadow-sm">
                     <h3 className="mb-4 font-display text-lg font-semibold flex items-center gap-2">
                       <Info className="h-5 w-5 text-primary" />
-                      Participant Details
+                      {isJudgeOnly ? 'Entry Details' : 'Participant Details'}
                     </h3>
                     <div className="grid grid-cols-2 gap-6 text-sm">
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">Owner</p>
-                        <p className="mt-1 font-medium">{selectedItem.ownerName}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">Location</p>
-                        <p className="mt-1 font-medium">{selectedItem.city}</p>
-                      </div>
+                      {!isJudgeOnly && (
+                        <>
+                          <div>
+                            <p className="text-xs uppercase tracking-wider text-muted-foreground">Owner</p>
+                            <p className="mt-1 font-medium">{selectedItem.ownerName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-wider text-muted-foreground">Location</p>
+                            <p className="mt-1 font-medium">{selectedItem.city}</p>
+                          </div>
+                        </>
+                      )}
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground">Size Category</p>
                         <Badge variant="secondary" className="mt-1">{selectedItem.sizeCategory || 'Large'}</Badge>
@@ -316,6 +338,12 @@ export default function AdminJudgingPage() {
                         <p className="text-xs uppercase tracking-wider text-muted-foreground">Event</p>
                         <p className="mt-1 font-medium text-primary">Depok Bonsai Festival 2026</p>
                       </div>
+                      {isJudgeOnly && (
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">Visibilitas</p>
+                          <p className="mt-1 font-medium">Mode penjurian anonim aktif</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 

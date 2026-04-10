@@ -12,11 +12,13 @@ import {
   Activity,
   Play,
   User,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ppbiLogo from "@/assets/ppbi-logo.png";
 import depokLogo from "@/assets/depok-logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   Sidebar,
@@ -54,12 +56,19 @@ const registryItems = [
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const isActive = (path: string) =>
-    path === "/admin"
-      ? location.pathname === "/admin"
-      : location.pathname.startsWith(path);
+  const visibleMainItems = mainItems.filter((item) => user?.role !== "juri");
+  const visibleCompetitionItems = user?.role === "juri"
+    ? [{ title: "Judging", url: "/judge", icon: Scale }, { title: "Live Arena", url: "/live", icon: Play }]
+    : competitionItems;
+  const visibleRegistryItems = registryItems.filter((item) => user?.role !== "juri");
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -72,17 +81,18 @@ export function AdminSidebar() {
               <img src={depokLogo} alt="Depok" className="h-8 w-8 shrink-0" />
               <span className="font-display text-xs font-bold leading-tight tracking-tight">
                 PPBI Depok<br />
-                <span className="font-normal text-muted-foreground">Admin</span>
+                <span className="font-normal text-muted-foreground">{user?.role || "Admin"}</span>
               </span>
             </>
           )}
         </div>
 
+        {visibleMainItems.length > 0 && (
         <SidebarGroup>
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {visibleMainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -100,12 +110,13 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Competition</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {competitionItems.map((item) => (
+              {visibleCompetitionItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -123,37 +134,67 @@ export function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Registry</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {registryItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+        {visibleRegistryItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Registry</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleRegistryItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-muted/50"
+                        activeClassName="bg-primary/10 text-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {user?.role === "superadmin" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to={item.url}
+                      to="/admin/users"
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Users & Roles</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
+        {!collapsed && user && (
+          <div className="px-3 pb-2 text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">{user.name}</div>
+            <div>{user.email}</div>
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <a href="/" className="text-muted-foreground hover:text-foreground">
+            <SidebarMenuButton onClick={handleLogout}>
+              <span className="text-muted-foreground hover:text-foreground">
                 <LogOut className="mr-2 h-4 w-4" />
-                {!collapsed && <span>Back to Site</span>}
-              </a>
+                {!collapsed && <span>Logout</span>}
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
