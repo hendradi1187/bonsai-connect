@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
   Participant.associate = (models) => {
     Participant.belongsTo(models.Event, { foreignKey: 'event_id' });
     Participant.hasMany(models.Bonsai, { foreignKey: 'owner_id' });
-    Participant.hasOne(models.Scoring, { foreignKey: 'participant_id' });
+    Participant.hasMany(models.Scoring, { foreignKey: 'participant_id', as: 'Scorings' });
   };
 
   return Participant;

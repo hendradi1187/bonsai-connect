@@ -33,6 +33,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       defaultValue: 0
     },
+    judge_id: {
+      type: DataTypes.UUID,
+      allowNull: true, // null = aggregate row; UUID = per-judge row
+    },
     total_score: {
       type: DataTypes.FLOAT,
       defaultValue: 0
@@ -44,6 +48,7 @@ module.exports = (sequelize, DataTypes) => {
 
   Scoring.associate = (models) => {
     Scoring.belongsTo(models.Participant, { foreignKey: 'participant_id' });
+    Scoring.belongsTo(models.User, { foreignKey: 'judge_id', as: 'Judge', constraints: false });
   };
 
   return Scoring;

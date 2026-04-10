@@ -44,7 +44,9 @@ const mapCriterionScores = (scoring) => {
 };
 
 const formatRankingRow = (participant, index, previousScore) => {
-  const totalScore = Number(participant.Scoring?.total_score || 0);
+  // Scorings is an array; the aggregate row (judge_id = null) is filtered in the query
+  const aggregate = participant.Scorings?.[0];
+  const totalScore = Number(aggregate?.total_score || 0);
   const rank = previousScore !== null && totalScore === previousScore ? index : index + 1;
 
   return {
@@ -57,7 +59,7 @@ const formatRankingRow = (participant, index, previousScore) => {
     city: participant.city || 'Depok',
     sizeCategory: participant.Bonsais?.[0]?.size_category || 'Large',
     totalScore,
-    scores: mapCriterionScores(participant.Scoring),
+    scores: mapCriterionScores(aggregate),
   };
 };
 
@@ -76,10 +78,10 @@ const getRankingData = async ({ category, limit, eventIds } = {}) => {
     where: participantWhere,
     include: [
       { model: Bonsai },
-      { model: Scoring, required: true },
+      { model: Scoring, as: 'Scorings', required: true, where: { judge_id: null } },
     ],
     order: [
-      [{ model: Scoring }, 'total_score', 'DESC'],
+      [{ model: Scoring, as: 'Scorings' }, 'total_score', 'DESC'],
       ['judging_number', 'ASC'],
     ],
   });

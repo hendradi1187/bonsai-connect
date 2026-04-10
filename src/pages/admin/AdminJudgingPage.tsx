@@ -131,6 +131,7 @@ interface SubmitScoreResponse {
   message: string;
   totalScore: number;
   scores: ScorePayload;
+  finalized: boolean;
 }
 
 // --- Main Page ---
@@ -206,31 +207,51 @@ export default function AdminJudgingPage() {
     setIsScoringModalOpen(true);
   };
 
-  const handleSubmitScore = async () => {
+  const handleSubmitScore = async (openNext = false) => {
+    // Find next item BEFORE async state changes
+    const currentIndex = queue.findIndex((item) => item.id === selectedItem.id);
+    const nextItem = openNext
+      ? queue.slice(currentIndex + 1).find((item) => item.queueStatus !== 'done') ?? null
+      : null;
+
     try {
       const response = await submitScoreMutation.mutateAsync({
         participantId: selectedItem.id,
         scores
       });
-      const nextSelectedItem = {
+
+      const updatedItem = {
         ...selectedItem,
-        status: 'judged',
-        queueStatus: 'done',
+        status: response.finalized ? 'judged' : selectedItem.status,
+        queueStatus: response.finalized ? 'done' : selectedItem.queueStatus,
         scores: response.scores,
         totalScore: response.totalScore,
       };
 
-      setSelectedItem(nextSelectedItem);
       setQueue((currentQueue) =>
-        currentQueue.map((item) => (
-          item.id === selectedItem.id ? nextSelectedItem : item
-        ))
+        currentQueue.map((item) => (item.id === selectedItem.id ? updatedItem : item))
       );
-      setScores(response.scores);
-      toast.success(`Score submitted for ${selectedItem.treeName}`);
-      setIsScoringModalOpen(false);
-    } catch (err) {
-      toast.error("Failed to submit score");
+
+      if (openNext && nextItem) {
+        setSelectedItem(nextItem);
+        setScores(nextItem.scores ?? { nebari: 15, trunk: 15, branch: 15, composition: 15, pot: 15 });
+        toast.success(`Score saved. Now scoring: ${nextItem.treeName}`);
+      } else {
+        setSelectedItem(updatedItem);
+        setScores(response.scores);
+        setIsScoringModalOpen(false);
+        toast.success(response.finalized
+          ? `Score finalized for ${selectedItem.treeName}`
+          : `Score saved for ${selectedItem.treeName} — waiting for other judges`
+        );
+        if (openNext) toast.info('No more entries in queue');
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        toast.error('You have already scored this participant');
+      } else {
+        toast.error("Failed to submit score");
+      }
     }
   };
 
@@ -440,45 +461,60 @@ export default function AdminJudgingPage() {
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="font-display text-2xl">Digital Scoring Terminal</DialogTitle>
             <DialogDescription>
-              Assign scores for {selectedItem?.treeName} ({selectedItem?.treeNumber})
+              {selectedItem?.queueStatus === 'done'
+                ? `Final scores for ${selectedItem?.treeName} (${selectedItem?.treeNumber}) — read only`
+                : `Assign scores for ${selectedItem?.treeName} (${selectedItem?.treeNumber})`}
             </DialogDescription>
           </DialogHeader>
 
+          {selectedItem?.queueStatus === 'done' && (
+            <div className="mx-6 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700 font-medium">
+              This entry has been scored and finalized. Scores are read-only.
+            </div>
+          )}
+
           <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
-            {criteria.map(({ key, label, description }) => (
-              <div key={key} className="group rounded-xl border border-muted bg-muted/10 p-4 transition-colors hover:bg-muted/20">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <label className="text-xs font-black uppercase tracking-widest text-primary">{label}</label>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+            {criteria.map(({ key, label, description }) => {
+              const isReadOnly = selectedItem?.queueStatus === 'done';
+              return (
+                <div key={key} className={`group rounded-xl border border-muted bg-muted/10 p-4 ${isReadOnly ? 'opacity-75' : 'transition-colors hover:bg-muted/20'}`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-widest text-primary">{label}</label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+                    </div>
+                    <span className="font-mono text-xl font-black text-primary bg-background px-3 py-1 rounded-lg border tabular-nums">
+                      {scores[key]}/20
+                    </span>
                   </div>
-                  <span className="font-mono text-xl font-black text-primary bg-background px-3 py-1 rounded-lg border tabular-nums">
-                    {scores[key]}/20
-                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="20"
+                    step="0.5"
+                    value={scores[key]}
+                    onChange={(e) => !isReadOnly && setScores({ ...scores, [key]: Number(e.target.value) })}
+                    disabled={isReadOnly}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none accent-primary mt-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ cursor: isReadOnly ? 'not-allowed' : 'pointer' }}
+                  />
+                  <div className="flex justify-between mt-2 px-1">
+                     <span className="text-[10px] text-muted-foreground font-medium">0</span>
+                     <span className="text-[10px] text-muted-foreground font-medium">10</span>
+                     <span className="text-[10px] text-muted-foreground font-medium">20</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  step="0.5"
-                  value={scores[key]}
-                  onChange={(e) => setScores({ ...scores, [key]: Number(e.target.value) })}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none accent-primary cursor-pointer mt-2"
-                />
-                <div className="flex justify-between mt-2 px-1">
-                   <span className="text-[10px] text-muted-foreground font-medium">0</span>
-                   <span className="text-[10px] text-muted-foreground font-medium">10</span>
-                   <span className="text-[10px] text-muted-foreground font-medium">20</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="bg-muted/30 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-semibold uppercase tracking-tight text-muted-foreground">Final Total:</span>
+              <span className="text-sm font-semibold uppercase tracking-tight text-muted-foreground">
+                {selectedItem?.queueStatus === 'done' ? 'Final Score:' : 'Total:'}
+              </span>
               <AnimatePresence mode="wait">
-                <motion.span 
+                <motion.span
                   key={totalScore}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -491,15 +527,27 @@ export default function AdminJudgingPage() {
             </div>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsScoringModalOpen(false)}>
-                Cancel
+                {selectedItem?.queueStatus === 'done' ? 'Close' : 'Cancel'}
               </Button>
-              <Button 
-                className="flex-1 sm:flex-none px-8" 
-                onClick={handleSubmitScore}
-                disabled={submitScoreMutation.isPending}
-              >
-                {submitScoreMutation.isPending ? 'Saving...' : 'Submit Final Score'}
-              </Button>
+              {selectedItem?.queueStatus !== 'done' && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="flex-1 sm:flex-none"
+                    onClick={() => handleSubmitScore(true)}
+                    disabled={submitScoreMutation.isPending}
+                  >
+                    {submitScoreMutation.isPending ? 'Saving...' : 'Save & Next'}
+                  </Button>
+                  <Button
+                    className="flex-1 sm:flex-none px-8"
+                    onClick={() => handleSubmitScore(false)}
+                    disabled={submitScoreMutation.isPending}
+                  >
+                    {submitScoreMutation.isPending ? 'Saving...' : 'Submit Final Score'}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>

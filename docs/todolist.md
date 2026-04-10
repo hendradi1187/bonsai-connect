@@ -237,10 +237,10 @@ Judging
 - [x] Perhitungan total score otomatis di backend
 - [x] Ranking auto update
 - [x] Tie handling dasar
-- [ ] Save and Next di halaman judging
-- [ ] Lock input setelah final submit
-- [ ] Prevent double scoring
-- [ ] Multi-juri aggregation
+- [x] Save and Next di halaman judging
+- [x] Lock input setelah final submit
+- [x] Prevent double scoring
+- [x] Multi-juri aggregation
 
 ## Phase 5 - Dashboard Peserta
 
