@@ -33,6 +33,27 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       defaultValue: 0
     },
+    // New Criteria
+    appearance_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    movement_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    harmony_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    maturity_score: {
+      type: DataTypes.FLOAT,
+      defaultValue: 0
+    },
+    judge_note: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     judge_id: {
       type: DataTypes.UUID,
       allowNull: true, // null = aggregate row; UUID = per-judge row

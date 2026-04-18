@@ -11,8 +11,18 @@ node_modules
 dist
 dist-ssr
 *.local
+# Env files — hanya file dengan nilai nyata yang di-exclude
 .env
-.env.*
+.env.local
+.env.production
+.env.production.local
+infrastructure/.env
+infrastructure/.env.production
+
+# File template & development defaults boleh di-commit
+!.env.example
+!infrastructure/.env.example
+!infrastructure/.env.development
 
 # Editor directories and files
 .vscode/*

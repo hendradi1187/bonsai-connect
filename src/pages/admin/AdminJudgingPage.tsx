@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGet, usePost } from "@/hooks/useApi";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,8 @@ import {
   Clock, 
   Scale, 
   ChevronRight,
-  Info
+  Info,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +43,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 // --- Sub-components ---
 
@@ -112,19 +115,17 @@ function SortableQueueItem({ id, item, onSelect, isActive, isJudgeOnly }: Sortab
 }
 
 const criteria = [
-  { key: "nebari", label: "Nebari (Root Spread)", description: "Visual quality and distribution of surface roots." },
-  { key: "trunk", label: "Trunk Quality", description: "Taper, bark texture, and movement of the main trunk." },
-  { key: "branch", label: "Branch Structure", description: "Placement, ramification, and health of branches." },
-  { key: "composition", label: "Composition Balance", description: "Overall visual harmony and stylistic execution." },
-  { key: "pot", label: "Pot Harmony", description: "Relationship between tree, pot, and optional stand." },
+  { key: "appearance", label: "Penampilan (Appearance)", description: "Kualitas visual, estetika, dan daya tarik bonsai secara keseluruhan." },
+  { key: "movement", label: "Gerak Dasar (Basic Movement)", description: "Komposisi, keseimbangan, alur bentuk, dan struktur dasar pohon." },
+  { key: "harmony", label: "Keserasian (Harmony)", description: "Keterpaduan elemen, konsistensi gaya, dan keselarasan pot." },
+  { key: "maturity", label: "Kematangan (Maturity)", description: "Tingkat penyelesaian, detail ranting, dan profesionalitas garapan." },
 ];
 
 interface ScorePayload {
-  nebari: number;
-  trunk: number;
-  branch: number;
-  composition: number;
-  pot: number;
+  appearance: number;
+  movement: number;
+  harmony: number;
+  maturity: number;
 }
 
 interface SubmitScoreResponse {
@@ -133,6 +134,20 @@ interface SubmitScoreResponse {
   scores: ScorePayload;
   finalized: boolean;
 }
+
+const getGrade = (score: number) => {
+  if (score >= 81) return { label: 'A', color: 'text-emerald-600', desc: 'Sangat Baik' };
+  if (score >= 71) return { label: 'B', color: 'text-blue-600', desc: 'Baik' };
+  if (score >= 61) return { label: 'C', color: 'text-amber-600', desc: 'Cukup' };
+  return { label: 'D', color: 'text-red-600', desc: 'Kurang' };
+};
+
+const getPredicate = (total: number) => {
+  if (total >= 321) return { label: 'Baik Sekali', color: 'bg-emerald-500' };
+  if (total >= 281) return { label: 'Baik', color: 'bg-blue-500' };
+  if (total >= 241) return { label: 'Cukup', color: 'bg-amber-500' };
+  return { label: 'Kurang', color: 'bg-red-500' };
+};
 
 // --- Main Page ---
 
@@ -143,17 +158,17 @@ export default function AdminJudgingPage() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isScoringModalOpen, setIsScoringModalOpen] = useState(false);
   const [scores, setScores] = useState<ScorePayload>({
-    nebari: 15,
-    trunk: 15,
-    branch: 15,
-    composition: 15,
-    pot: 15,
+    appearance: 75,
+    movement: 75,
+    harmony: 75,
+    maturity: 75,
   });
+  const [note, setNote] = useState("");
 
   // API Hooks
   const { data: queueData, isLoading } = useGet<any[]>(['judging-queue'], '/queue');
   const updateQueueMutation = usePost('/queue/reorder', [['judging-queue']]);
-  const submitScoreMutation = usePost<{ participantId: string; scores: ScorePayload }, SubmitScoreResponse>(
+  const submitScoreMutation = usePost<{ participantId: string; scores: ScorePayload; note?: string }, SubmitScoreResponse>(
     '/scoring/submit',
     [['judging-queue'], ['event-status'], ['rankings'], ['live-arena-init']]
   );
@@ -199,10 +214,17 @@ export default function AdminJudgingPage() {
   const handleOpenScoring = (item: any) => {
     setSelectedItem(item);
     // Load existing scores if already judged
-    if (item.scores) {
-      setScores(item.scores);
+    if (item.scores && item.scores.appearance !== undefined) {
+      setScores({
+        appearance: item.scores.appearance,
+        movement: item.scores.movement,
+        harmony: item.scores.harmony,
+        maturity: item.scores.maturity,
+      });
+      setNote(item.scores.note || "");
     } else {
-      setScores({ nebari: 15, trunk: 15, branch: 15, composition: 15, pot: 15 });
+      setScores({ appearance: 75, movement: 75, harmony: 75, maturity: 75 });
+      setNote("");
     }
     setIsScoringModalOpen(true);
   };
@@ -217,7 +239,8 @@ export default function AdminJudgingPage() {
     try {
       const response = await submitScoreMutation.mutateAsync({
         participantId: selectedItem.id,
-        scores
+        scores,
+        note
       });
 
       const updatedItem = {
@@ -234,7 +257,12 @@ export default function AdminJudgingPage() {
 
       if (openNext && nextItem) {
         setSelectedItem(nextItem);
-        setScores(nextItem.scores ?? { nebari: 15, trunk: 15, branch: 15, composition: 15, pot: 15 });
+        // Reset or load next scores
+        const nextScores = nextItem.scores && nextItem.scores.appearance !== undefined
+          ? { appearance: nextItem.scores.appearance, movement: nextItem.scores.movement, harmony: nextItem.scores.harmony, maturity: nextItem.scores.maturity }
+          : { appearance: 75, movement: 75, harmony: 75, maturity: 75 };
+        setScores(nextScores);
+        setNote(nextItem.scores?.note || "");
         toast.success(`Score saved. Now scoring: ${nextItem.treeName}`);
       } else {
         setSelectedItem(updatedItem);
@@ -255,7 +283,10 @@ export default function AdminJudgingPage() {
     }
   };
 
-  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+  const totalScore = useMemo(() => {
+    return Object.values(scores).reduce((a, b) => a + b, 0);
+  }, [scores]);
+
   const visibleQueue = queue.filter((item) =>
     [item.treeNumber, item.treeName, item.species]
       .filter(Boolean)
@@ -263,6 +294,8 @@ export default function AdminJudgingPage() {
   );
   const activeQueueItems = visibleQueue.filter((item) => item.queueStatus !== 'done');
   const completedQueueItems = visibleQueue.filter((item) => item.queueStatus === 'done');
+
+  const predicate = useMemo(() => getPredicate(totalScore), [totalScore]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col gap-6 overflow-hidden">
@@ -373,11 +406,11 @@ export default function AdminJudgingPage() {
                   <Button
                     size="lg"
                     className="sm:w-auto"
-                    onClick={() => setIsScoringModalOpen(true)}
-                    disabled={selectedItem.queueStatus === 'done'}
+                    onClick={() => handleOpenScoring(selectedItem)}
+                    disabled={selectedItem.queueStatus === 'done' && isJudgeOnly}
                   >
                     <Scale className="mr-2 h-4 w-4" /> 
-                    {selectedItem.queueStatus === 'done' ? 'Already Finalized' : selectedItem.queueStatus === 'current' ? 'Score Current Entry' : 'Score Selected Entry'}
+                    {selectedItem.queueStatus === 'done' ? 'View Final Results' : selectedItem.queueStatus === 'current' ? 'Score Current Entry' : 'Score Selected Entry'}
                   </Button>
                 </div>
               </div>
@@ -421,21 +454,39 @@ export default function AdminJudgingPage() {
 
                   {selectedItem.queueStatus === 'done' && (
                     <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-6">
-                       <h3 className="mb-4 font-display text-lg font-semibold text-emerald-800">Final Results</h3>
-                       <div className="flex items-end justify-between">
-                          <div className="space-y-2">
-                             {criteria.map(c => (
-                               <div key={c.key} className="flex gap-4 text-sm">
-                                  <span className="w-32 text-muted-foreground">{c.label}</span>
-                                  <span className="font-mono font-bold text-emerald-700">{selectedItem.scores?.[c.key] || 0}</span>
-                               </div>
-                             ))}
+                       <div className="flex justify-between items-start mb-4">
+                          <h3 className="font-display text-lg font-semibold text-emerald-800">Final Results</h3>
+                          <Badge className={getPredicate(selectedItem.totalScore).color}>
+                             {getPredicate(selectedItem.totalScore).label}
+                          </Badge>
+                       </div>
+                       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                          <div className="flex-1 space-y-3">
+                             {criteria.map(c => {
+                               const score = selectedItem.scores?.[c.key] || 0;
+                               const grade = getGrade(score);
+                               return (
+                                 <div key={c.key} className="flex items-center gap-4 text-sm">
+                                    <span className="w-40 text-muted-foreground text-xs leading-tight">{c.label}</span>
+                                    <span className={`w-8 font-bold ${grade.color}`}>{grade.label}</span>
+                                    <span className="font-mono font-bold text-emerald-700">{score}</span>
+                                 </div>
+                               );
+                             })}
                           </div>
-                          <div className="text-center">
+                          <div className="text-center bg-white p-4 rounded-xl border border-emerald-100 shadow-sm">
                              <div className="text-[10px] uppercase font-bold text-emerald-600">Total Score</div>
-                             <div className="text-5xl font-mono font-black text-emerald-700">{selectedItem.totalScore}</div>
+                             <div className="text-5xl font-mono font-black text-emerald-700 tabular-nums">{selectedItem.totalScore}</div>
                           </div>
                        </div>
+                       {selectedItem.scores?.note && (
+                         <div className="mt-6 p-4 bg-white/50 rounded-lg border border-dashed border-emerald-200">
+                           <p className="text-xs font-bold uppercase text-emerald-700 mb-1 flex items-center gap-1.5">
+                             <MessageSquare className="h-3 w-3" /> Catatan Juri:
+                           </p>
+                           <p className="text-sm italic text-emerald-900 leading-relaxed">"{selectedItem.scores.note}"</p>
+                         </div>
+                       )}
                     </div>
                   )}
                 </div>
@@ -474,56 +525,85 @@ export default function AdminJudgingPage() {
           )}
 
           <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
-            {criteria.map(({ key, label, description }) => {
-              const isReadOnly = selectedItem?.queueStatus === 'done';
-              return (
-                <div key={key} className={`group rounded-xl border border-muted bg-muted/10 p-4 ${isReadOnly ? 'opacity-75' : 'transition-colors hover:bg-muted/20'}`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-widest text-primary">{label}</label>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {criteria.map(({ key, label, description }) => {
+                const isReadOnly = selectedItem?.queueStatus === 'done';
+                const score = (scores as any)[key];
+                const grade = getGrade(score);
+                
+                return (
+                  <div key={key} className={`group flex flex-col rounded-xl border border-muted bg-muted/10 p-4 ${isReadOnly ? 'opacity-75' : 'transition-colors hover:bg-muted/20'}`}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 pr-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary leading-tight block">{label}</label>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className={`text-xs font-bold ${grade.color}`}>{grade.label}</span>
+                        <span className="font-mono text-xl font-black text-primary tabular-nums">
+                          {score}
+                        </span>
+                      </div>
                     </div>
-                    <span className="font-mono text-xl font-black text-primary bg-background px-3 py-1 rounded-lg border tabular-nums">
-                      {scores[key]}/20
-                    </span>
+                    
+                    <input
+                      type="range"
+                      min="50"
+                      max="90"
+                      step="1"
+                      value={score}
+                      onChange={(e) => !isReadOnly && setScores({ ...scores, [key]: Number(e.target.value) })}
+                      disabled={isReadOnly}
+                      className="w-full h-1.5 bg-muted rounded-lg appearance-none accent-primary mt-2 disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{ cursor: isReadOnly ? 'not-allowed' : 'pointer' }}
+                    />
+                    <div className="flex justify-between mt-1 px-0.5">
+                       <span className="text-[9px] text-muted-foreground">50</span>
+                       <span className="text-[9px] text-muted-foreground italic">{grade.desc}</span>
+                       <span className="text-[9px] text-muted-foreground">90</span>
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="20"
-                    step="0.5"
-                    value={scores[key]}
-                    onChange={(e) => !isReadOnly && setScores({ ...scores, [key]: Number(e.target.value) })}
-                    disabled={isReadOnly}
-                    className="w-full h-2 bg-muted rounded-lg appearance-none accent-primary mt-2 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ cursor: isReadOnly ? 'not-allowed' : 'pointer' }}
-                  />
-                  <div className="flex justify-between mt-2 px-1">
-                     <span className="text-[10px] text-muted-foreground font-medium">0</span>
-                     <span className="text-[10px] text-muted-foreground font-medium">10</span>
-                     <span className="text-[10px] text-muted-foreground font-medium">20</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                 <MessageSquare className="h-3.5 w-3.5" /> Catatan Juri (Opsional)
+               </label>
+               <Textarea 
+                 placeholder="Masukkan catatan singkat untuk peserta (1-2 kalimat)..."
+                 value={note}
+                 onChange={(e) => setNote(e.target.value)}
+                 disabled={selectedItem?.queueStatus === 'done'}
+                 className="resize-none text-sm"
+                 rows={2}
+               />
+            </div>
           </div>
 
           <div className="bg-muted/30 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm font-semibold uppercase tracking-tight text-muted-foreground">
-                {selectedItem?.queueStatus === 'done' ? 'Final Score:' : 'Total:'}
-              </span>
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={totalScore}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="font-mono text-4xl font-black text-primary tabular-nums"
-                >
-                  {totalScore}
-                </motion.span>
-              </AnimatePresence>
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold uppercase tracking-tight text-muted-foreground">
+                  {selectedItem?.queueStatus === 'done' ? 'Final Score:' : 'Total:'}
+                </span>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={totalScore}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="font-mono text-4xl font-black text-primary tabular-nums"
+                  >
+                    {totalScore}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+              <Badge className={`${predicate.color} w-fit mt-1 text-[10px] uppercase font-bold`}>
+                {predicate.label}
+              </Badge>
             </div>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsScoringModalOpen(false)}>

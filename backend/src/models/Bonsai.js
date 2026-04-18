@@ -23,6 +23,32 @@ module.exports = (sequelize, DataTypes) => {
     },
     photo_url: {
       type: DataTypes.STRING
+    },
+    passport_id: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: true
+    },
+    height_cm: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    estimated_age: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    style: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    passport_status: {
+      type: DataTypes.ENUM('registered', 'approved', 'judged'),
+      defaultValue: 'registered'
+    },
+    accessories: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+      comment: 'Perlengkapan pendamping: ["Meja","Batu","Rumput Pendamping"]'
     }
   }, {
     tableName: 'bonsai',

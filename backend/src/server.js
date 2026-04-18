@@ -7,6 +7,7 @@ dotenv.config();
 const app = require('./app');
 const { sequelize } = require('./models');
 const { ensureDefaultUsers } = require('./bootstrap/seedUsers');
+const { ensurePassportSeedData } = require('./bootstrap/seedPassportData');
 const { initMinio } = require('./config/minio');
 
 const PORT = process.env.PORT || 3000;
@@ -21,7 +22,14 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
+
     await ensureDefaultUsers();
+
+    // Seed data demo hanya untuk development — tidak dijalankan di production
+    if (process.env.NODE_ENV !== 'production') {
+      await ensurePassportSeedData();
+    }
+
     await initMinio();
     
     // In production, use migrations. For dev, sync is okay if the user wants it.

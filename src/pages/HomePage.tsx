@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ppbiLogo from "@/assets/ppbi-logo.png";
 import depokLogo from "@/assets/depok-logo.png";
 import heroImage from "@/assets/bonsai-hero.jpg";
@@ -26,57 +27,6 @@ import { BonsaiCard, getBonsaiImage } from "@/components/BonsaiCard";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-
-const stats = [
-  { value: "12,450+", label: "Bonsai Terdaftar", icon: TreePine },
-  { value: "85+",     label: "Event Nasional",   icon: CalendarDays },
-  { value: "5,200+",  label: "Sertifikat Aktif", icon: Award },
-  { value: "34",      label: "Provinsi",         icon: MapPin },
-];
-
-const steps = [
-  { number: "01", icon: BookOpen,    title: "Daftar Bonsai",      desc: "Upload data, foto, dan spesies bonsai Anda ke sistem registry nasional." },
-  { number: "02", icon: CalendarDays, title: "Ikuti Kompetisi",   desc: "Pilih event nasional atau regional yang tersedia dan daftarkan bonsai." },
-  { number: "03", icon: Star,         title: "Penilaian Berjuri", desc: "Bonsai dinilai oleh juri bersertifikat secara digital dan transparan." },
-  { number: "04", icon: Shield,       title: "Bonsai Passport",   desc: "Dapatkan ID digital permanen dan sertifikat resmi terverifikasi." },
-];
-
-const liveArenaItems = [
-  {
-    id: "evt-001",
-    name: "Depok Bonsai Festival 2026",
-    location: "Balai Kota Depok",
-    top3: [
-      { no: "J-007", name: "Ficus Retusa 'Nusantara'", score: 87.5 },
-      { no: "J-013", name: "Serissa Foetida 'Pagi'",   score: 85.0 },
-      { no: "J-002", name: "Juniperus 'Gunung Mas'",   score: 82.0 },
-    ],
-  },
-  {
-    id: "evt-002",
-    name: "West Java Championship 2025",
-    location: "Gedung Sate, Bandung",
-    top3: [
-      { no: "J-021", name: "Bougainvillea 'Merah Api'", score: 90.0 },
-      { no: "J-008", name: "Azalea 'Putih Bersih'",     score: 88.5 },
-      { no: "J-034", name: "Wrightia 'Emas Kecil'",     score: 86.0 },
-    ],
-  },
-  {
-    id: "evt-003",
-    name: "Nasional Open PPBI 2025",
-    location: "GOR Bulungan, Jakarta",
-    top3: [
-      { no: "J-001", name: "Ficus Microcarpa 'Raja'",   score: 92.0 },
-      { no: "J-044", name: "Carmona 'Subur Jaya'",      score: 89.5 },
-      { no: "J-017", name: "Podocarpus 'Hijau Daun'",   score: 87.0 },
-    ],
-  },
-];
-
-const rankMedal = ["🥇", "🥈", "🥉"];
 
 // ─── Fade-up variant ─────────────────────────────────────────────────────────
 
@@ -90,6 +40,7 @@ const fadeUp = (delay = 0) => ({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const [certCode, setCertCode] = useState("");
   const navigate = useNavigate();
 
@@ -97,6 +48,55 @@ export default function HomePage() {
     e.preventDefault();
     if (certCode.trim()) navigate(`/verify-certificate?cert=${certCode.trim()}`);
   };
+
+  const stats = [
+    { value: "12,450+", label: t('home.stat_bonsai'), icon: TreePine },
+    { value: "85+",     label: t('home.stat_events'),   icon: CalendarDays },
+    { value: "5,200+",  label: t('home.stat_certs'), icon: Award },
+    { value: "34",      label: t('home.stat_provinces'),         icon: MapPin },
+  ];
+
+  const steps = [
+    { number: "01", icon: BookOpen,    title: t('home.process_step_1'),      desc: t('home.process_step_1_desc') },
+    { number: "02", icon: CalendarDays, title: t('home.process_step_2'),   desc: t('home.process_step_2_desc') },
+    { number: "03", icon: Star,         title: t('home.process_step_3'), desc: t('home.process_step_3_desc') },
+    { number: "04", icon: Shield,       title: t('home.process_step_4'),   desc: t('home.process_step_4_desc') },
+  ];
+
+  const liveArenaItems = [
+    {
+      id: "evt-001",
+      name: "Depok Bonsai Festival 2026",
+      location: "Balai Kota Depok",
+      top3: [
+        { no: "J-007", name: "Ficus Retusa 'Nusantara'", score: 87.5 },
+        { no: "J-013", name: "Serissa Foetida 'Pagi'",   score: 85.0 },
+        { no: "J-002", name: "Juniperus 'Gunung Mas'",   score: 82.0 },
+      ],
+    },
+    {
+      id: "evt-002",
+      name: "West Java Championship 2025",
+      location: "Gedung Sate, Bandung",
+      top3: [
+        { no: "J-021", name: "Bougainvillea 'Merah Api'", score: 90.0 },
+        { no: "J-008", name: "Azalea 'Putih Bersih'",     score: 88.5 },
+        { no: "J-034", name: "Wrightia 'Emas Kecil'",     score: 86.0 },
+      ],
+    },
+    {
+      id: "evt-003",
+      name: "Nasional Open PPBI 2025",
+      location: "GOR Bulungan, Jakarta",
+      top3: [
+        { no: "J-001", name: "Ficus Microcarpa 'Raja'",   score: 92.0 },
+        { no: "J-044", name: "Carmona 'Subur Jaya'",      score: 89.5 },
+        { no: "J-017", name: "Podocarpus 'Hijau Daun'",   score: 87.0 },
+      ],
+    },
+  ];
+
+  const rankMedal = ["🥇", "🥈", "🥉"];
 
   return (
     <div className="overflow-x-hidden">
@@ -120,7 +120,7 @@ export default function HomePage() {
                 <div className="h-8 w-px bg-border" />
                 <img src={depokLogo} alt="Kota Depok" className="h-12 w-12" />
                 <div>
-                  <p className="font-display text-xs font-bold leading-none tracking-widest uppercase text-muted-foreground">PPBI Ranting Depok</p>
+                  <p className="font-display text-xs font-bold leading-none tracking-widest uppercase text-muted-foreground">{t('common.branch_depok')}</p>
                 </div>
               </div>
 
@@ -128,7 +128,7 @@ export default function HomePage() {
               <motion.div {...fadeUp(0)}>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-primary">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  PPBI Official Platform
+                  {t('common.official_platform')}
                 </span>
               </motion.div>
 
@@ -143,7 +143,7 @@ export default function HomePage() {
               </motion.h1>
 
               <motion.p {...fadeUp(0.15)} className="mt-5 text-base text-muted-foreground leading-relaxed max-w-lg">
-                Sistem terintegrasi untuk registrasi bonsai, kompetisi nasional, dan identitas digital Bonsai Passport berbasis PPBI. Transparan, terverifikasi, dan real-time.
+                {t('home.hero_desc')}
               </motion.p>
 
               {/* CTAs */}
@@ -153,7 +153,7 @@ export default function HomePage() {
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98]"
                 >
                   <TreePine className="h-4 w-4" />
-                  Daftar Kompetisi
+                  {t('home.btn_register')}
                 </Link>
                 <Link
                   to="/live"
@@ -163,23 +163,23 @@ export default function HomePage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
                   </span>
-                  Live Arena
+                  {t('home.btn_live')}
                 </Link>
                 <Link
                   to="/verify-certificate"
                   className="inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:border-foreground/20 active:scale-[0.98]"
                 >
                   <Shield className="h-4 w-4" />
-                  Verifikasi Sertifikat
+                  {t('home.btn_verify')}
                 </Link>
               </motion.div>
 
               {/* Mini stats */}
               <motion.div {...fadeUp(0.28)} className="mt-10 flex flex-wrap gap-6">
                 {[
-                  { value: "12,450+", label: "Bonsai Terdaftar" },
-                  { value: "85+",     label: "Event Nasional" },
-                  { value: "5,200+",  label: "Sertifikat Terverifikasi" },
+                  { value: "12,450+", label: t('home.stat_bonsai') },
+                  { value: "85+",     label: t('home.stat_events') },
+                  { value: "5,200+",  label: t('home.stat_certs') },
                 ].map((s) => (
                   <div key={s.label}>
                     <p className="font-display text-2xl font-black text-foreground">{s.value}</p>
@@ -198,275 +198,260 @@ export default function HomePage() {
             >
               <div className="aspect-[4/5] max-w-md mx-auto overflow-hidden rounded-2xl border shadow-2xl shadow-black/10">
                 <img src={heroImage} alt="Bonsai" className="h-full w-full object-cover" />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
               </div>
 
-              {/* Glassmorphism floating card */}
+              {/* Floating card */}
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
-                className="absolute -bottom-5 -left-8 w-64 rounded-2xl border border-white/50 bg-white/80 p-4 shadow-xl backdrop-blur-sm"
+                className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-5 shadow-2xl border w-64"
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="passport-id">BNS-DPK-00001</span>
-                  <span className="ml-auto rounded-full bg-[#C8A951]/20 px-2 py-0.5 text-[10px] font-bold text-[#C8A951] uppercase">Gold</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Trophy className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Best In Show</p>
+                    <p className="font-display text-sm font-bold">Ficus Microcarpa</p>
+                  </div>
                 </div>
-                <p className="font-display text-base font-bold">Ficus Retusa</p>
-                <p className="text-xs text-muted-foreground italic mt-0.5">Ficus microcarpa</p>
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between border-t pt-4">
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase font-bold">Score</p>
-                    <p className="font-mono text-xl font-black text-primary">84</p>
+                    <p className="font-display text-lg font-black text-primary">94.50</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Judge</p>
-                    <p className="text-xs font-medium">Certified Panel</p>
-                  </div>
-                  <Link
-                    to="/gallery"
-                    className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-white"
-                  >
-                    Detail
-                  </Link>
+                  <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">Verified</Badge>
                 </div>
-              </motion.div>
-
-              {/* Top-right badge */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.8 }}
-                className="absolute -right-4 top-8 rounded-xl border bg-white px-4 py-3 shadow-lg"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="text-xs font-bold text-foreground">System Online</p>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Real-time judging aktif</p>
               </motion.div>
             </motion.div>
+
           </div>
         </div>
       </section>
 
-      {/* ── 2. PLATFORM STATISTICS ───────────────────────────────────────────── */}
-      <section className="border-b bg-primary py-14">
+      {/* ── 2. STATS BAR ──────────────────────────────────────────────────── */}
+      <section className="bg-muted/30 border-b py-10">
         <div className="container">
-          <div className="grid grid-cols-2 divide-x divide-white/20 lg:grid-cols-4">
-            {stats.map((s, i) => (
-              <motion.div key={s.label} {...fadeUp(i * 0.07)} className="px-6 py-4 text-center first:pl-0 last:pr-0">
-                <s.icon className="mx-auto h-6 w-6 text-white/60 mb-2" />
-                <p className="font-display text-3xl font-black text-white">{s.value}</p>
-                <p className="mt-1 text-xs font-medium text-white/70 uppercase tracking-wider">{s.label}</p>
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                {...fadeUp(i * 0.1)}
+                className="flex flex-col items-center text-center md:items-start md:text-left"
+              >
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm border">
+                  <stat.icon className="h-5 w-5 text-primary" />
+                </div>
+                <p className="font-display text-3xl font-black tracking-tight">{stat.value}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">{stat.label}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── 3. HOW IT WORKS ──────────────────────────────────────────────────── */}
-      <section className="border-b bg-white py-20">
+      {/* ── 3. PROCESS STEPS ──────────────────────────────────────────────── */}
+      <section className="py-24 bg-white relative">
+        <div className="container relative">
+          <div className="mb-16 max-w-2xl">
+            <h2 className="font-display text-3xl font-bold tracking-tight text-balance lg:text-4xl">
+              {t('home.process_title')}
+            </h2>
+            <div className="mt-4 h-1 w-20 bg-primary" />
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step, i) => (
+              <motion.div
+                key={step.title}
+                {...fadeUp(i * 0.12)}
+                className="group relative rounded-2xl border border-transparent p-6 transition-all hover:border-border hover:bg-muted/30"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+                  <step.icon className="h-6 w-6" />
+                </div>
+                <p className="mb-2 text-xs font-black text-primary/40 tracking-widest">{step.number}</p>
+                <h3 className="mb-3 font-display text-lg font-bold">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 4. LIVE ARENA SNEAK PEEK ──────────────────────────────────────── */}
+      <section className="py-24 bg-muted/20 border-y relative overflow-hidden">
+        <div className="growth-ring-bg absolute inset-0 opacity-40" />
+        <div className="container relative">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div className="max-w-xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600">
+                <Radio className="h-3 w-3" />
+                Live Scoring Arena
+              </div>
+              <h2 className="font-display text-3xl font-bold tracking-tight lg:text-4xl">
+                Pantau Penilaian <span className="text-primary">Real-time</span>
+              </h2>
+            </div>
+            <Link to="/live" className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+              Buka Live Arena <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {liveArenaItems.map((item, i) => (
+              <motion.div
+                key={item.id}
+                {...fadeUp(i * 0.15)}
+                className="rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-md"
+              >
+                <div className="mb-6 border-b pb-4">
+                  <h3 className="font-display font-bold text-lg leading-tight">{item.name}</h3>
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {item.location}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Top Ranking Sementara</p>
+                  {item.top3.map((entry, idx) => (
+                    <div key={entry.no} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{rankMedal[idx]}</span>
+                        <div>
+                          <p className="text-xs font-bold leading-none">{entry.name}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">{entry.no}</p>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-bold text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                        {entry.score.toFixed(1)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Link
+                  to={`/live`}
+                  className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-muted/50 py-3 text-xs font-bold transition-all hover:bg-primary hover:text-white"
+                >
+                  Lihat Detail Event <ChevronRight className="h-3 w-3" />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 5. SEARCH & VERIFY ────────────────────────────────────────────── */}
+      <section className="py-24 bg-white">
         <div className="container">
-          <motion.div {...fadeUp(0)} className="text-center mb-12">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Cara Kerja</span>
-            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">Empat Langkah Sederhana</h2>
-            <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
-              Dari registrasi hingga sertifikat digital — semua dalam satu platform terintegrasi.
-            </p>
-          </motion.div>
+          <div className="rounded-3xl bg-primary px-8 py-16 text-white lg:px-20 lg:py-24 relative overflow-hidden shadow-2xl shadow-primary/20">
+            {/* Decoration */}
+            <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-white/5 blur-3xl" />
+
+            <div className="grid items-center gap-12 lg:grid-cols-2 relative z-10">
+              <div>
+                <h2 className="font-display text-3xl font-bold tracking-tight lg:text-5xl leading-tight">
+                  Verifikasi Sertifikat & Bonsai Passport
+                </h2>
+                <p className="mt-6 text-lg text-white/80 leading-relaxed max-w-lg">
+                  Pastikan keaslian sertifikat dan data kepemilikan bonsai Anda melalui sistem registry terpusat.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white/10 p-2 backdrop-blur-md">
+                <form onSubmit={handleVerify} className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+                    <input
+                      type="text"
+                      placeholder="Masukkan Kode Sertifikat (e.g. BC-2026-XXXX)"
+                      value={certCode}
+                      onChange={(e) => setCertCode(e.target.value)}
+                      className="w-full rounded-xl bg-white/10 py-4 pl-12 pr-4 text-sm font-medium text-white placeholder:text-white/40 outline-none ring-1 ring-white/20 focus:ring-white/50 transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-white px-8 py-4 text-sm font-bold text-primary transition-all hover:bg-white/90 active:scale-[0.98] shadow-lg shadow-black/10"
+                  >
+                    Verifikasi
+                  </button>
+                </form>
+                <p className="mt-4 px-2 text-xs text-white/60">
+                  Contoh: <span className="font-mono text-white/80">CERT-DEP-001</span> atau scan QR Code di Bonsai Passport.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 6. LATEST ENTRIES ─────────────────────────────────────────────── */}
+      <section className="py-24 bg-white border-t">
+        <div className="container">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="font-display text-3xl font-bold tracking-tight">Terdaftar Baru</h2>
+              <p className="text-muted-foreground mt-2">Bonsai yang baru saja mendapatkan identitas digital</p>
+            </div>
+            <Link to="/gallery" className="hidden sm:flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+              Lihat Galeri Nasional <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step, i) => (
-              <motion.div key={step.number} {...fadeUp(i * 0.08)}>
-                <div className="group relative h-full rounded-2xl border bg-white p-6 shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
-                  {/* Connector arrow — hidden on last */}
-                  {i < steps.length - 1 && (
-                    <ChevronRight className="absolute -right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-border hidden lg:block z-10" />
-                  )}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <step.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <span className="font-mono text-3xl font-black text-muted/20 text-border">{step.number}</span>
-                  </div>
-                  <h3 className="font-display text-base font-bold">{step.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-                </div>
+            {mockBonsai.slice(0, 4).map((bonsai, i) => (
+              <motion.div key={bonsai.id} {...fadeUp(i * 0.1)}>
+                <BonsaiCard bonsai={bonsai} />
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ── 4. LIVE ARENA ────────────────────────────────────────────────────── */}
-      <section className="bg-[#0D2818] py-20">
-        <div className="container">
-          <motion.div {...fadeUp(0)} className="text-center mb-12">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-red-400">
-              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              Live Arena
-            </span>
-            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white">
-              Live Competition Arena
-            </h2>
-            <p className="mt-3 text-sm text-white/50 max-w-md mx-auto">
-              Pantau penilaian bonsai secara real-time dari seluruh Indonesia.
-            </p>
-          </motion.div>
-
-          <div className="grid gap-5 md:grid-cols-3">
-            {liveArenaItems.map((item, i) => (
-              <motion.div key={item.id} {...fadeUp(i * 0.08)}>
-                <div className="group h-full rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm hover:border-white/20 hover:bg-white/8 transition-all">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-2 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400 uppercase tracking-wider">
-                          <Radio className="h-2.5 w-2.5" /> LIVE
-                        </span>
-                      </div>
-                      <h3 className="font-display text-sm font-bold text-white leading-snug">{item.name}</h3>
-                      <p className="text-[11px] text-white/50 mt-0.5 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {item.location}
-                      </p>
-                    </div>
-                    <Trophy className="h-5 w-5 text-[#C8A951]/60 shrink-0 mt-1" />
-                  </div>
-
-                  {/* Top 3 */}
-                  <div className="space-y-2">
-                    {item.top3.map((entry, rank) => (
-                      <div key={entry.no} className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
-                        <span className="text-base shrink-0">{rankMedal[rank]}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono text-[10px] text-[#C8A951]/70">{entry.no}</p>
-                          <p className="text-xs text-white/80 font-medium truncate">{entry.name}</p>
-                        </div>
-                        <span className="font-mono text-sm font-bold text-white/90 shrink-0">{entry.score}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Link
-                    to="/live"
-                    className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 py-2.5 text-xs font-bold text-white/70 hover:border-white/30 hover:text-white transition-all"
-                  >
-                    <Zap className="h-3.5 w-3.5" />
-                    Watch Live
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. FEATURED GALLERY ──────────────────────────────────────────────── */}
-      <section className="border-b bg-[#F5F7F6] py-20">
-        <div className="container">
-          <motion.div {...fadeUp(0)} className="flex items-end justify-between mb-10">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Koleksi Unggulan</span>
-              <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tight">Featured Collection</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Bonsai pemenang dari registry kami</p>
-            </div>
+          <div className="mt-12 text-center sm:hidden">
             <Link
               to="/gallery"
-              className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline underline-offset-4"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 py-3 text-sm font-bold transition-all hover:bg-muted"
             >
-              Lihat semua <ArrowRight className="h-4 w-4" />
+              Lihat Galeri Nasional <ArrowRight className="h-4 w-4" />
             </Link>
-          </motion.div>
-
-          <div className="passport-grid">
-            {mockBonsai.slice(0, 3).map((b, i) => (
-              <BonsaiCard key={b.id} bonsai={b} index={i} />
-            ))}
           </div>
-
-          <motion.div {...fadeUp(0.2)} className="mt-8 text-center sm:hidden">
-            <Link to="/gallery" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-              Lihat semua <ArrowRight className="h-4 w-4" />
-            </Link>
-          </motion.div>
         </div>
       </section>
 
-      {/* ── 6. CERTIFICATE VERIFICATION WIDGET ──────────────────────────────── */}
-      <section className="border-b bg-white py-20">
-        <div className="container max-w-2xl text-center">
-          <motion.div {...fadeUp(0)}>
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <Shield className="h-7 w-7 text-primary" />
+      {/* ── 7. FOOTER CTA ─────────────────────────────────────────────────── */}
+      <section className="py-24 bg-primary/5">
+        <div className="container">
+          <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-xl shadow-primary/10">
+              <Zap className="h-8 w-8 text-primary" />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Verifikasi Resmi</span>
-            <h2 className="mt-2 font-display text-3xl font-extrabold tracking-tight">
-              Verify Bonsai Certificate
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Cek keaslian sertifikat digital dengan memasukkan kode sertifikat.
+            <h2 className="font-display text-4xl font-bold tracking-tight mb-6">Siap mendaftarkan bonsai Anda?</h2>
+            <p className="text-lg text-muted-foreground mb-10">
+              Bergabunglah dengan ribuan penggemar bonsai lainnya dalam ekosistem digital PPBI yang transparan dan terpercaya.
             </p>
-          </motion.div>
-
-          <motion.form {...fadeUp(0.1)} onSubmit={handleVerify} className="mt-8 flex gap-2">
-            <Input
-              placeholder="Masukkan kode sertifikat, cth: CERT-DPK-2026-001"
-              value={certCode}
-              onChange={(e) => setCertCode(e.target.value)}
-              className="flex-1 h-12 font-mono text-sm"
-            />
-            <Button type="submit" size="lg" className="h-12 px-6 shrink-0">
-              <Search className="h-4 w-4 mr-2" />
-              Verifikasi
-            </Button>
-          </motion.form>
-
-          <motion.div {...fadeUp(0.18)} className="mt-6 flex justify-center gap-8 text-sm text-muted-foreground">
-            {[
-              { icon: CheckCircle2, text: "Terverifikasi Digital" },
-              { icon: Shield,       text: "Anti-Pemalsuan" },
-              { icon: Award,        text: "Diterbitkan Resmi PPBI" },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-1.5">
-                <item.icon className="h-4 w-4 text-primary" />
-                <span>{item.text}</span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── 7. CTA BANNER ───────────────────────────────────────────────────── */}
-      <section className="border-b bg-primary py-16">
-        <div className="container text-center">
-          <motion.div {...fadeUp(0)}>
-            <h2 className="font-display text-3xl font-extrabold tracking-tight text-white">
-              Siap Bergabung dengan Platform Bonsai Nasional?
-            </h2>
-            <p className="mt-3 text-sm text-white/70 max-w-md mx-auto">
-              Daftarkan bonsai Anda, ikuti kompetisi, dan dapatkan identitas digital resmi dari PPBI.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-4">
               <Link
                 to="/events"
-                className="rounded-xl bg-[#C8A951] px-8 py-3 text-sm font-bold text-white shadow-md hover:bg-[#b8962e] transition-all active:scale-[0.98]"
+                className="rounded-xl bg-primary px-8 py-4 text-sm font-bold text-white shadow-xl shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98]"
               >
-                Daftar Sekarang
+                Mulai Registrasi
               </Link>
               <Link
-                to="/peserta"
-                className="rounded-xl border border-white/30 bg-white/10 px-8 py-3 text-sm font-bold text-white hover:bg-white/20 transition-all active:scale-[0.98]"
+                to="/gallery"
+                className="rounded-xl bg-white border px-8 py-4 text-sm font-bold transition-all hover:bg-muted active:scale-[0.98]"
               >
-                Portal Peserta
+                Lihat Koleksi
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
+
     </div>
   );
 }

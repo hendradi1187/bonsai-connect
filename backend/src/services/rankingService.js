@@ -1,20 +1,37 @@
 const { Op } = require('sequelize');
 const { Participant, Bonsai, Scoring } = require('../models');
 
-const SCORE_KEYS = ['nebari', 'trunk', 'branch', 'composition', 'pot'];
+const SCORE_KEYS = ['appearance', 'movement', 'harmony', 'maturity'];
+const LEGACY_SCORE_KEYS = ['nebari', 'trunk', 'branch', 'composition', 'pot'];
 
-const clampScore = (value) => {
+const getPredicate = (totalScore) => {
+  if (totalScore >= 321) return 'Baik Sekali';
+  if (totalScore >= 281) return 'Baik';
+  if (totalScore >= 241) return 'Cukup';
+  return 'Kurang';
+};
+
+const getElementGrade = (score) => {
+  if (score >= 81) return 'A';
+  if (score >= 71) return 'B';
+  if (score >= 61) return 'C';
+  return 'D';
+};
+
+const clampScore = (value, min = 0, max = 100) => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
-    return 0;
+    return min;
   }
 
-  return Math.min(20, Math.max(0, numeric));
+  return Math.min(max, Math.max(min, numeric));
 };
 
 const normalizeScores = (scores = {}) => {
   return SCORE_KEYS.reduce((accumulator, key) => {
-    accumulator[key] = clampScore(scores[key]);
+    // New rules: scale 50-90. We clamp but allow flexibility if juri enters slightly outside.
+    // The instructions say A: 81-90, B: 71-80, C: 61-70, D: 50-60.
+    accumulator[key] = clampScore(scores[key], 0, 100); 
     return accumulator;
   }, {});
 };
@@ -26,12 +43,25 @@ const calculateTotalScore = (scores = {}) => {
   return {
     normalizedScores,
     totalScore: Number(total.toFixed(2)),
+    predicate: getPredicate(total),
   };
 };
 
 const mapCriterionScores = (scoring) => {
   if (!scoring) {
     return null;
+  }
+
+  // Check if it's new system or old
+  if (scoring.appearance_score > 0) {
+    return {
+      appearance: Number(scoring.appearance_score || 0),
+      movement: Number(scoring.movement_score || 0),
+      harmony: Number(scoring.harmony_score || 0),
+      maturity: Number(scoring.maturity_score || 0),
+      predicate: getPredicate(scoring.total_score),
+      note: scoring.judge_note
+    };
   }
 
   return {
@@ -59,6 +89,7 @@ const formatRankingRow = (participant, index, previousScore) => {
     city: participant.city || 'Depok',
     sizeCategory: participant.Bonsais?.[0]?.size_category || 'Large',
     totalScore,
+    predicate: getPredicate(totalScore),
     scores: mapCriterionScores(aggregate),
   };
 };

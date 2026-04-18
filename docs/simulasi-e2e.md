@@ -380,5 +380,5 @@ waiting → current → done
 
 ---
 
-*Dokumen ini dibuat untuk keperluan simulasi E2E internal PPBI Ranting Depok.*
+*Dokumen ini dibuat untuk keperluan simulasi E2E internal PPBI Cabang Kota Depok.*
 *Platform: PPBI Depok Bonsai Registry & Competition Platform*

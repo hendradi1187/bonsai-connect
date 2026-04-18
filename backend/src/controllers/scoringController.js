@@ -24,21 +24,31 @@ const computeAggregateScore = async (participantId, judgingNumber) => {
     participant_id: participantId,
     judging_number: judgingNumber,
     judge_id: null,
+    // Legacy support
     nebari_score: avg('nebari_score'),
     trunk_score: avg('trunk_score'),
     branch_score: avg('branch_score'),
     composition_score: avg('composition_score'),
     pot_score: avg('pot_score'),
+    // New Criteria
+    appearance_score: avg('appearance_score'),
+    movement_score: avg('movement_score'),
+    harmony_score: avg('harmony_score'),
+    maturity_score: avg('maturity_score'),
   };
-  aggregateData.total_score = Number(
-    Object.values(aggregateData).reduce((s, v) => (typeof v === 'number' && v > 0 ? s + v : s), 0).toFixed(2)
-  );
-
-  // Re-compute total cleanly
-  aggregateData.total_score = Number(
-    (aggregateData.nebari_score + aggregateData.trunk_score + aggregateData.branch_score +
-      aggregateData.composition_score + aggregateData.pot_score).toFixed(2)
-  );
+  
+  // Re-compute total cleanly from new criteria if available, else legacy
+  if (aggregateData.appearance_score > 0) {
+    aggregateData.total_score = Number(
+      (aggregateData.appearance_score + aggregateData.movement_score + 
+       aggregateData.harmony_score + aggregateData.maturity_score).toFixed(2)
+    );
+  } else {
+    aggregateData.total_score = Number(
+      (aggregateData.nebari_score + aggregateData.trunk_score + aggregateData.branch_score +
+        aggregateData.composition_score + aggregateData.pot_score).toFixed(2)
+    );
+  }
 
   const existing = await Scoring.findOne({ where: { participant_id: participantId, judge_id: null } });
   if (existing) {
@@ -98,17 +108,19 @@ exports.submitScore = async (req, res) => {
       return res.status(409).json({ message: 'You have already scored this participant' });
     }
 
-    const { normalizedScores, totalScore } = calculateTotalScore(scores);
+    const { normalizedScores, totalScore, predicate } = calculateTotalScore(scores);
+    const judgeNote = req.body.note || null;
 
     const judgeScoreData = {
       participant_id: participantId,
       judging_number: participant.judging_number || 'TBD',
       judge_id: judgeId,
-      nebari_score: normalizedScores.nebari,
-      trunk_score: normalizedScores.trunk,
-      branch_score: normalizedScores.branch,
-      composition_score: normalizedScores.composition,
-      pot_score: normalizedScores.pot,
+      // Mapping to new DB columns
+      appearance_score: normalizedScores.appearance,
+      movement_score: normalizedScores.movement,
+      harmony_score: normalizedScores.harmony,
+      maturity_score: normalizedScores.maturity,
+      judge_note: judgeNote,
       total_score: totalScore,
     };
 
@@ -144,6 +156,12 @@ exports.submitScore = async (req, res) => {
         imageUrl: participant.Bonsais?.[0]?.photo_url,
         scores: normalizedScores,
         totalScore: aggregateRecord?.total_score ?? totalScore,
+        predicate: aggregateRecord ? calculateTotalScore({
+          appearance: aggregateRecord.appearance_score,
+          movement: aggregateRecord.movement_score,
+          harmony: aggregateRecord.harmony_score,
+          maturity: aggregateRecord.maturity_score
+        }).predicate : predicate,
       },
     });
 

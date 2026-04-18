@@ -1,0 +1,40 @@
+# Production overrides untuk deployment IP publik
+# Jalankan dengan:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build
+
+services:
+  backend:
+    # Tidak mount source code — jalankan dari image yang sudah di-build
+    volumes: []
+    # Gunakan npm start (node langsung, bukan nodemon)
+    command: ["npm", "start"]
+    restart: unless-stopped
+    # Backend tidak di-expose langsung — diakses via nginx
+    ports: []
+
+  postgres:
+    restart: unless-stopped
+    # Database tidak di-expose ke publik
+    ports: []
+
+  minio:
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      # Console MinIO tidak perlu di-expose di production
+      # Jika perlu akses sementara: uncomment baris berikut
+      # - "9001:9001"
+
+  nginx:
+    image: nginx:alpine
+    container_name: bonsai-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - bonsai-network

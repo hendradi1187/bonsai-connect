@@ -73,13 +73,22 @@ const resolveEvent = async (eventId) => {
 
 const generateRegistrationNumber = async (event) => {
   const year = getEventYear(event);
-  const existingCount = await Participant.count({
+  // Find max sequence across ALL participants (all events) to ensure global uniqueness
+  const participants = await Participant.findAll({
+    attributes: ['registration_number'],
     where: {
-      event_id: event.id
+      registration_number: {
+        [Op.like]: `PPBI-DPK-${year}-%`
+      }
     }
   });
 
-  return `PPBI-DPK-${year}-${padSequence(existingCount + 1)}`;
+  const maxSeq = participants.reduce((max, p) => {
+    const match = /(\d+)$/.exec(p.registration_number || '');
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+
+  return `PPBI-DPK-${year}-${padSequence(maxSeq + 1)}`;
 };
 
 const generateJudgingNumber = async () => {
@@ -130,6 +139,7 @@ exports.getAll = async (req, res) => {
         species: p.Bonsais[0].species,
         sizeCategory: p.Bonsais[0].size_category,
         photoUrl: p.Bonsais[0].photo_url,
+        accessories: p.Bonsais[0].accessories || [],
       } : null
     }));
     
@@ -178,10 +188,10 @@ exports.create = async (req, res) => {
 
 exports.registerPublic = async (req, res) => {
   try {
-    const { eventId, name, phone, city, bonsaiName, species, sizeCategory, photoUrl } = req.body;
+    const { eventId, name, phone, city, bonsais } = req.body;
 
-    if (!eventId || !name || !phone || !bonsaiName || !species) {
-      return res.status(400).json({ message: 'eventId, name, phone, bonsaiName, and species are required' });
+    if (!eventId || !name || !phone || !bonsais || !Array.isArray(bonsais) || bonsais.length === 0) {
+      return res.status(400).json({ message: 'eventId, name, phone, and at least one bonsai are required' });
     }
 
     const event = await Event.findByPk(eventId);
@@ -193,47 +203,72 @@ exports.registerPublic = async (req, res) => {
       return res.status(400).json({ message: 'Registration is not open for this event' });
     }
 
-    const registrationNumber = await generateRegistrationNumber(event);
-    const judgingNumber = await generateJudgingNumber();
+    const results = [];
 
-    const participant = await Participant.create({
-      event_id: event.id,
-      name,
-      phone,
-      city: city || DEFAULT_CITY,
-      registration_number: registrationNumber,
-      judging_number: judgingNumber,
-      judging_number_status: 'reserved',
-      status: 'registered'
-    });
+    for (const bonsaiData of bonsais) {
+      const { name: bonsaiName, species, sizeCategory, photoUrl, accessories } = bonsaiData;
 
-    const bonsai = await Bonsai.create({
-      owner_id: participant.id,
-      name: bonsaiName,
-      species,
-      size_category: sizeCategory || 'Large',
-      photo_url: photoUrl || null
-    });
+      if (!bonsaiName || !species) {
+        continue; // Skip invalid entries
+      }
+
+      const registrationNumber = await generateRegistrationNumber(event);
+      const judgingNumber = await generateJudgingNumber();
+
+      const participant = await Participant.create({
+        event_id: event.id,
+        name,
+        phone,
+        city: city || DEFAULT_CITY,
+        registration_number: registrationNumber,
+        judging_number: judgingNumber,
+        judging_number_status: 'reserved',
+        status: 'registered'
+      });
+
+      const bonsai = await Bonsai.create({
+        owner_id: participant.id,
+        name: bonsaiName,
+        species,
+        size_category: sizeCategory || 'Large',
+        photo_url: photoUrl || null,
+        accessories: Array.isArray(accessories) ? accessories : []
+      });
+
+      results.push({
+        participant: {
+          id: participant.id,
+          eventId: participant.event_id,
+          name: participant.name,
+          phone: participant.phone,
+          city: participant.city,
+          registrationNumber: participant.registration_number,
+          judgingNumber: participant.judging_number,
+          judgingNumberStatus: participant.judging_number_status,
+          status: participant.status
+        },
+        bonsai: {
+          id: bonsai.id,
+          name: bonsai.name,
+          species: bonsai.species,
+          sizeCategory: bonsai.size_category,
+          photoUrl: bonsai.photo_url,
+          accessories: bonsai.accessories || []
+        }
+      });
+    }
+
+    if (results.length === 0) {
+      return res.status(400).json({ message: 'No valid bonsai data provided' });
+    }
 
     res.status(201).json({
-      participant: {
-        id: participant.id,
-        eventId: participant.event_id,
-        name: participant.name,
-        phone: participant.phone,
-        city: participant.city,
-        registrationNumber: participant.registration_number,
-        judgingNumber: participant.judging_number,
-        judgingNumberStatus: participant.judging_number_status,
-        status: participant.status
-      },
-      bonsai: {
-        id: bonsai.id,
-        name: bonsai.name,
-        species: bonsai.species,
-        sizeCategory: bonsai.size_category,
-        photoUrl: bonsai.photo_url
-      }
+      success: true,
+      count: results.length,
+      registrations: results,
+      // For backward compatibility with any frontend that expects single object
+      participant: results[0].participant,
+      bonsai: results[0].bonsai
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -253,7 +288,7 @@ exports.lookup = async (req, res) => {
     else if (registration_number) where.registration_number = registration_number;
     else if (judging_number) where.judging_number = judging_number;
 
-    const participant = await Participant.findOne({
+    const participants = await Participant.findAll({
       where,
       include: [
         { model: Bonsai },
@@ -262,56 +297,69 @@ exports.lookup = async (req, res) => {
       ],
     });
 
-    if (!participant) return res.status(404).json({ message: 'Participant not found' });
+    if (!participants || participants.length === 0) return res.status(404).json({ message: 'Participant not found' });
 
-    const aggregate = participant.Scorings?.[0] || null;
+    const results = await Promise.all(participants.map(async (participant) => {
+      const aggregate = participant.Scorings?.[0] || null;
 
-    // Get ranking position if judged
-    let rank = null;
-    if (participant.status === 'judged' && aggregate) {
-      const rankings = await getRankingData({ eventIds: [participant.event_id] });
-      const entry = rankings.find((r) => r.id === participant.id);
-      rank = entry?.rank ?? null;
+      // Get ranking position if judged
+      let rank = null;
+      if (participant.status === 'judged' && aggregate) {
+        const rankings = await getRankingData({ eventIds: [participant.event_id] });
+        const entry = rankings.find((r) => r.id === participant.id);
+        rank = entry?.rank ?? null;
+      }
+
+      return {
+        id: participant.id,
+        name: participant.name,
+        city: participant.city || DEFAULT_CITY,
+        registrationNumber: participant.registration_number,
+        judgingNumber: participant.judging_number,
+        judgingNumberStatus: participant.judging_number_status,
+        status: participant.status,
+        event: participant.Event
+          ? {
+              id: participant.Event.id,
+              name: participant.Event.name,
+              location: participant.Event.location,
+              startDate: participant.Event.start_date,
+              endDate: participant.Event.end_date,
+            }
+          : null,
+        rank,
+        totalScore: aggregate ? Number(aggregate.total_score) : null,
+        scores: aggregate
+          ? {
+              appearance: Number(aggregate.appearance_score || 0),
+              movement: Number(aggregate.movement_score || 0),
+              harmony: Number(aggregate.harmony_score || 0),
+              maturity: Number(aggregate.maturity_score || 0),
+              // legacy fallback
+              nebari: Number(aggregate.nebari_score || 0),
+              trunk: Number(aggregate.trunk_score || 0),
+              branch: Number(aggregate.branch_score || 0),
+              composition: Number(aggregate.composition_score || 0),
+              pot: Number(aggregate.pot_score || 0),
+            }
+          : null,
+        bonsai: participant.Bonsais.map((b) => ({
+          id: b.id,
+          name: b.name,
+          species: b.species,
+          sizeCategory: b.size_category,
+          imageUrl: b.photo_url,
+        })),
+      };
+    }));
+
+    // If searching by unique number, return single object for backward compatibility
+    // but if searching by phone, return array of results
+    if (registration_number || judging_number) {
+      res.json(results[0]);
+    } else {
+      res.json(results);
     }
-
-    const formatted = {
-      id: participant.id,
-      name: participant.name,
-      city: participant.city || DEFAULT_CITY,
-      registrationNumber: participant.registration_number,
-      judgingNumber: participant.judging_number,
-      judgingNumberStatus: participant.judging_number_status,
-      status: participant.status,
-      event: participant.Event
-        ? {
-            id: participant.Event.id,
-            name: participant.Event.name,
-            location: participant.Event.location,
-            startDate: participant.Event.start_date,
-            endDate: participant.Event.end_date,
-          }
-        : null,
-      rank,
-      totalScore: aggregate ? Number(aggregate.total_score) : null,
-      scores: aggregate
-        ? {
-            nebari: Number(aggregate.nebari_score),
-            trunk: Number(aggregate.trunk_score),
-            branch: Number(aggregate.branch_score),
-            composition: Number(aggregate.composition_score),
-            pot: Number(aggregate.pot_score),
-          }
-        : null,
-      bonsai: participant.Bonsais.map((b) => ({
-        id: b.id,
-        name: b.name,
-        species: b.species,
-        sizeCategory: b.size_category,
-        imageUrl: b.photo_url,
-      })),
-    };
-
-    res.json(formatted);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -319,7 +367,7 @@ exports.lookup = async (req, res) => {
 
 exports.checkIn = async (req, res) => {
   try {
-    const { participantId, treeName, species, sizeCategory, photoUrl } = req.body;
+    const { participantId, treeName, species, sizeCategory, photoUrl, accessories } = req.body;
 
     if (!participantId || !treeName || !species) {
       return res.status(400).json({ message: 'participantId, treeName, and species are required' });
@@ -346,7 +394,8 @@ exports.checkIn = async (req, res) => {
         name: treeName,
         species,
         size_category: sizeCategory || bonsai.size_category || 'Large',
-        photo_url: photoUrl || bonsai.photo_url || null
+        photo_url: photoUrl || bonsai.photo_url || null,
+        accessories: Array.isArray(accessories) ? accessories : (bonsai.accessories || [])
       });
     } else {
       bonsai = await Bonsai.create({
@@ -354,7 +403,8 @@ exports.checkIn = async (req, res) => {
         name: treeName,
         species,
         size_category: sizeCategory || 'Large',
-        photo_url: photoUrl || null
+        photo_url: photoUrl || null,
+        accessories: Array.isArray(accessories) ? accessories : []
       });
     }
 
@@ -394,7 +444,8 @@ exports.checkIn = async (req, res) => {
         name: bonsai.name,
         species: bonsai.species,
         sizeCategory: bonsai.size_category,
-        photoUrl: bonsai.photo_url
+        photoUrl: bonsai.photo_url,
+        accessories: bonsai.accessories || []
       },
       queue: {
         id: queueEntry.id,

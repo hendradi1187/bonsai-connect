@@ -10,6 +10,7 @@ const EventRuntime = require('./EventRuntime');
 const User = require('./User');
 const AuditLog = require('./AuditLog');
 const JudgeAssignment = require('./JudgeAssignment');
+const Certificate = require('./Certificate');
 
 // Define models
 const models = {
@@ -22,6 +23,7 @@ const models = {
   User: User(sequelize, DataTypes),
   AuditLog: AuditLog(sequelize, DataTypes),
   JudgeAssignment: JudgeAssignment(sequelize, DataTypes),
+  Certificate: Certificate(sequelize, DataTypes),
 };
 
 // Define associations

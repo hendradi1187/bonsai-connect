@@ -28,7 +28,10 @@ const toParticipantStatus = (queueStatus, existingStatus) => {
 const getQueueInclude = () => ([
   {
     model: Participant,
-    include: [Bonsai, Scoring],
+    include: [
+      Bonsai,
+      { model: Scoring, as: 'Scorings', where: { judge_id: null }, required: false },
+    ],
   },
 ]);
 
@@ -64,7 +67,7 @@ const pickCanonicalQueueEntry = (entries, participantStatus) => {
 const formatQueueEntry = (queueEntry, { hidePrivateFields = false } = {}) => {
   const participant = queueEntry.Participant;
   const bonsai = participant?.Bonsais?.[0];
-  const scoring = participant?.Scoring;
+  const scoring = participant?.Scorings?.[0];
   const derivedStatus = toParticipantStatus(queueEntry.status, participant?.status);
 
   return {

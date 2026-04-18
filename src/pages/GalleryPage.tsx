@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { mockBonsai, getCategoryColor } from "@/data/mockData";
-import { BonsaiCard } from "@/components/BonsaiCard";
+import { getCategoryColor } from "@/data/mockData";
+import { BonsaiCard, type ApiPassport } from "@/components/BonsaiCard";
+import { useGet } from "@/hooks/useApi";
 
 const categories = ["All", "Sito", "Mame", "Shohin", "Medium", "Large"];
 
@@ -8,7 +9,12 @@ export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [search, setSearch] = useState("");
 
-  const filtered = mockBonsai.filter((b) => {
+  const { data: passports = [], isLoading } = useGet<ApiPassport[]>(
+    ["passports"],
+    "/public/passports"
+  );
+
+  const filtered = passports.filter((b) => {
     const matchCategory = selectedCategory === "All" || b.category === selectedCategory;
     const matchSearch =
       !search ||
@@ -50,13 +56,21 @@ export default function GalleryPage() {
           />
         </div>
 
-        <div className="passport-grid mt-8">
-          {filtered.map((b, i) => (
-            <BonsaiCard key={b.id} bonsai={b} index={i} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="passport-grid mt-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="animate-pulse rounded-2xl bg-muted aspect-[4/5]" />
+            ))}
+          </div>
+        ) : (
+          <div className="passport-grid mt-8">
+            {filtered.map((b, i) => (
+              <BonsaiCard key={b.id} bonsai={b} index={i} />
+            ))}
+          </div>
+        )}
 
-        {filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && (
           <div className="py-20 text-center text-muted-foreground">
             No bonsai found matching your criteria.
           </div>

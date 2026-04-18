@@ -1,37 +1,26 @@
-import { type BonsaiTree, getCategoryColor, getRankBadge, getAverageScore } from "@/data/mockData";
+import { getCategoryColor } from "@/data/mockData";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import bonsai1 from "@/assets/bonsai-1.jpg";
-import bonsai2 from "@/assets/bonsai-2.jpg";
-import bonsai3 from "@/assets/bonsai-3.jpg";
-import bonsai4 from "@/assets/bonsai-4.jpg";
-import bonsai5 from "@/assets/bonsai-5.jpg";
-import bonsai6 from "@/assets/bonsai-6.jpg";
-
-const bonsaiImages: Record<string, string> = {
-  "b-001": bonsai1,
-  "b-002": bonsai2,
-  "b-003": bonsai3,
-  "b-004": bonsai4,
-  "b-005": bonsai5,
-  "b-006": bonsai6,
-};
-
-export function getBonsaiImage(id: string) {
-  return bonsaiImages[id] || bonsai1;
+export interface ApiPassport {
+  id: string;
+  passportId: string;
+  treeName: string;
+  species: string;
+  ownerName: string;
+  city: string;
+  category: string;
+  photoUrl?: string | null;
+  averageScore?: number | null;
+  status?: string;
 }
 
 interface BonsaiCardProps {
-  bonsai: BonsaiTree;
+  bonsai: ApiPassport;
   index?: number;
 }
 
 export function BonsaiCard({ bonsai, index = 0 }: BonsaiCardProps) {
-  const score = getAverageScore(bonsai.scores);
-  const bestResult = bonsai.eventHistory?.find((e) => e.rank);
-  const rankBadge = bestResult ? getRankBadge(bestResult.rank) : null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -43,12 +32,17 @@ export function BonsaiCard({ bonsai, index = 0 }: BonsaiCardProps) {
         className="group block card-archive overflow-hidden transition-all hover:shadow-md"
       >
         <div className="aspect-[4/5] overflow-hidden bg-muted">
-          <img
-            src={getBonsaiImage(bonsai.id)}
-            alt={bonsai.treeName}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            style={{ boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)" }}
-          />
+          {bonsai.photoUrl ? (
+            <img
+              src={bonsai.photoUrl}
+              alt={bonsai.treeName}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100">
+              <span className="text-5xl select-none">🌿</span>
+            </div>
+          )}
         </div>
         <div className="p-4">
           <div className="flex items-start justify-between gap-2">
@@ -59,20 +53,15 @@ export function BonsaiCard({ bonsai, index = 0 }: BonsaiCardProps) {
               </h3>
               <p className="text-sm italic text-muted-foreground">{bonsai.species}</p>
             </div>
-            {rankBadge && (
-              <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold">
-                {rankBadge}
-              </span>
-            )}
           </div>
 
           <div className="mt-3 flex items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryColor(bonsai.category)}`}>
               {bonsai.category}
             </span>
-            {score > 0 && (
+            {bonsai.averageScore != null && bonsai.averageScore > 0 && (
               <span className="font-mono text-xs text-muted-foreground">
-                {score} pts
+                {bonsai.averageScore} pts
               </span>
             )}
           </div>

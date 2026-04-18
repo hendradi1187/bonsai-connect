@@ -1,204 +1,160 @@
 import {
   LayoutDashboard,
   CalendarDays,
-  Users,
-  TreePine,
   Scale,
   Trophy,
-  Award,
-  FileBarChart,
+  TreePine,
   BookOpen,
-  LogOut,
-  Activity,
-  Play,
-  User,
   ShieldCheck,
+  LogOut,
+  Radio,
+  ChevronLeft,
+  ChevronRight,
+  Users,
 } from "lucide-react";
-import { NavLink } from "@/components/NavLink";
-import { useNavigate } from "react-router-dom";
-import ppbiLogo from "@/assets/ppbi-logo.png";
-import depokLogo from "@/assets/depok-logo.png";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import ppbiLogo from "@/assets/ppbi-logo.png";
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
-} from "@/components/ui/sidebar";
+interface Props {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
-const mainItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Events", url: "/admin/events", icon: CalendarDays },
-  { title: "Event Control", url: "/admin/events/control", icon: Activity },
-  { title: "Participants", url: "/admin/participants", icon: Users },
-  { title: "Bonsai Trees", url: "/admin/bonsai", icon: TreePine },
+const NAV_GROUPS = [
+  {
+    label: "nav_groups.core",
+    items: [
+      { title: "nav.overview", url: "/admin", icon: LayoutDashboard, end: true },
+      { title: "nav.scoring", url: "/live", icon: Radio },
+    ],
+    roles: ["superadmin", "admin", "juri"],
+  },
+  {
+    label: "nav_groups.competition",
+    items: [
+      { title: "nav.events", url: "/admin/events", icon: CalendarDays },
+      { title: "nav.judging", url: "/admin/judging", icon: Scale },
+      { title: "nav.ranking", url: "/admin/ranking", icon: Trophy },
+    ],
+    roles: ["superadmin", "admin"],
+  },
+  {
+    label: "nav_groups.registry",
+    items: [
+      { title: "nav.bonsai_trees", url: "/admin/bonsai", icon: TreePine },
+      { title: "nav.passport", url: "/admin/passports", icon: BookOpen },
+      { title: "nav.participants", url: "/admin/participants", icon: Users },
+    ],
+    roles: ["superadmin", "admin"],
+  },
+  {
+    label: "nav_groups.system",
+    items: [
+      { title: "nav.users", url: "/admin/users", icon: ShieldCheck },
+    ],
+    roles: ["superadmin"],
+  },
 ];
 
-const competitionItems = [
-  { title: "Judging", url: "/admin/judging", icon: Scale },
-  { title: "Live Arena", url: "/live", icon: Play },
-  { title: "Ranking", url: "/admin/ranking", icon: Trophy },
-  { title: "Certificates", url: "/admin/certificates", icon: Award },
-];
-
-const registryItems = [
-  { title: "Bonsai Passport", url: "/admin/passports", icon: BookOpen },
-  { title: "Peserta Portal", url: "/peserta", icon: User },
-];
-
-export function AdminSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  const navigate = useNavigate();
+export function AdminSidebar({ collapsed, onToggle }: Props) {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
-
-  const visibleMainItems = mainItems.filter((item) => user?.role !== "juri");
-  const visibleCompetitionItems = user?.role === "juri"
-    ? [{ title: "Judging", url: "/judge", icon: Scale }, { title: "Live Arena", url: "/live", icon: Play }]
-    : competitionItems;
-  const visibleRegistryItems = registryItems.filter((item) => user?.role !== "juri");
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
-        <div className="flex items-center gap-2.5 border-b px-4 py-4">
-          <img src={ppbiLogo} alt="PPBI" className="h-8 w-8 shrink-0" />
-          {!collapsed && (
-            <>
-              <div className="h-5 w-px bg-border" />
-              <img src={depokLogo} alt="Depok" className="h-8 w-8 shrink-0" />
-              <span className="font-display text-xs font-bold leading-tight tracking-tight">
-                PPBI Depok<br />
-                <span className="font-normal text-muted-foreground">{user?.role || "Admin"}</span>
-              </span>
-            </>
-          )}
-        </div>
+    <aside
+      className="relative flex h-screen flex-col transition-all duration-300"
+      style={{
+        width: collapsed ? "64px" : "220px",
+        background: "linear-gradient(180deg, #0D2818 0%, #1A4030 60%, #163526 100%)",
+        flexShrink: 0,
+      }}
+    >
+      {/* Toggle button */}
+      <button
+        onClick={onToggle}
+        className="absolute -right-3 top-16 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-[#2E8B57]/40 bg-[#1A4030] text-white shadow-md hover:bg-[#2E8B57]/60 transition-colors"
+      >
+        {collapsed
+          ? <ChevronRight className="h-3.5 w-3.5" />
+          : <ChevronLeft className="h-3.5 w-3.5" />}
+      </button>
 
-        {visibleMainItems.length > 0 && (
-        <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleMainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/admin"}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        )}
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Competition</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleCompetitionItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {visibleRegistryItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Registry</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleRegistryItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="hover:bg-muted/50"
-                        activeClassName="bg-primary/10 text-primary font-medium"
-                      >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {user?.role === "superadmin" && (
-          <SidebarGroup>
-            <SidebarGroupLabel>System</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/admin/users"
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Users & Roles</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-      </SidebarContent>
-
-      <SidebarFooter>
-        {!collapsed && user && (
-          <div className="px-3 pb-2 text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">{user.name}</div>
-            <div>{user.email}</div>
+      {/* Logo */}
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-5">
+        <img src={ppbiLogo} alt="PPBI" className="h-9 w-9 shrink-0 rounded-lg" />
+        {!collapsed && (
+          <div className="overflow-hidden">
+            <div className="truncate text-sm font-bold text-white leading-tight">PPBI Depok</div>
+            <div className="truncate text-[11px] font-medium capitalize" style={{ color: "#C8A951" }}>
+              {user?.role || "Admin"}
+            </div>
           </div>
         )}
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
-              <span className="text-muted-foreground hover:text-foreground">
-                <LogOut className="mr-2 h-4 w-4" />
-                {!collapsed && <span>Logout</span>}
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 scrollbar-none">
+        {NAV_GROUPS.filter((group) =>
+          !user?.role || group.roles.includes(user.role)
+        ).map((group) => (
+          <div key={group.label} className="mb-1">
+            {!collapsed && (
+              <div
+                className="px-4 pb-1 pt-3 text-[10px] font-semibold tracking-widest"
+                style={{ color: "#C8A951", opacity: 0.8 }}
+              >
+                {t(group.label)}
+              </div>
+            )}
+            {collapsed && <div className="my-2 mx-3 h-px bg-white/10" />}
+            {group.items.map((item) => (
+              <NavLink
+                key={item.url}
+                to={item.url}
+                end={item.end}
+                className={({ isActive }) =>
+                  [
+                    "flex items-center gap-3 mx-2 my-0.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150",
+                    isActive
+                      ? "bg-[#2E8B57]/35 text-white font-semibold border-l-2 border-[#C8A951]"
+                      : "text-white/70 hover:bg-white/10 hover:text-white",
+                    collapsed ? "justify-center px-2" : "",
+                  ].join(" ")
+                }
+                title={collapsed ? t(item.title) : undefined}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="truncate">{t(item.title)}</span>}
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer — logout only */}
+      <div className="border-t border-white/10">
+        <button
+          onClick={handleLogout}
+          className={[
+            "flex w-full items-center gap-3 px-4 py-3.5 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors",
+            collapsed ? "justify-center" : "",
+          ].join(" ")}
+          title={collapsed ? t('common.logout') : undefined}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>{t('common.logout')}</span>}
+        </button>
+      </div>
+    </aside>
   );
 }

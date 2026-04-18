@@ -14,6 +14,20 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 
+const criteria = [
+  { key: "appearance", label: "Appearance" },
+  { key: "movement", label: "Movement" },
+  { key: "harmony", label: "Harmony" },
+  { key: "maturity", label: "Maturity" },
+];
+
+const getPredicateColor = (label: string) => {
+  if (label === 'Baik Sekali') return 'text-emerald-400';
+  if (label === 'Baik') return 'text-blue-400';
+  if (label === 'Cukup') return 'text-amber-400';
+  return 'text-red-400';
+};
+
 export default function LiveArenaPage() {
   const [currentJudging, setCurrentJudging] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -67,11 +81,11 @@ export default function LiveArenaPage() {
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-400" />
-              <span className="font-mono text-blue-100">{eventStats.activeViewers || 42} Viewers</span>
+              <span className="font-mono text-blue-100">{eventStats.activeViewers || 0} Viewers</span>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-emerald-400" />
-              <span className="font-mono text-emerald-100">{Math.round((eventStats.totalJudged / eventStats.totalEntries) * 100) || 0}% Complete</span>
+              <span className="font-mono text-emerald-100">{eventStats.totalEntries > 0 ? Math.round((eventStats.totalJudged / eventStats.totalEntries) * 100) : 0}% Complete</span>
             </div>
           </div>
         </div>
@@ -103,6 +117,11 @@ export default function LiveArenaPage() {
                              <span className="font-mono text-2xl font-black text-primary drop-shadow-lg">{currentJudging.treeNumber}</span>
                              <h2 className="mt-2 font-display text-5xl font-black tracking-tight drop-shadow-2xl">{currentJudging.treeName}</h2>
                              <p className="mt-2 text-xl italic text-white/70">{currentJudging.species} · {currentJudging.ownerName}</p>
+                             {currentJudging.predicate && (
+                               <Badge className="mt-4 bg-primary/20 text-primary border-primary/30 py-1 px-4 text-lg font-bold">
+                                 {currentJudging.predicate}
+                               </Badge>
+                             )}
                           </div>
                           <div className="text-right">
                              <div className="text-sm font-black uppercase tracking-widest text-primary">Live Score</div>
@@ -117,14 +136,19 @@ export default function LiveArenaPage() {
                           </div>
                        </div>
                        
-                       <div className="mt-8 grid grid-cols-5 gap-4">
-                          {['nebari', 'trunk', 'branch', 'composition', 'pot'].map((key) => (
-                            <div key={key} className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
-                               <div className="text-[10px] font-black uppercase tracking-wider text-white/50">{key}</div>
-                               <div className="mt-1 font-mono text-2xl font-bold">{currentJudging.scores?.[key] || '0'}</div>
-                               <Progress value={((currentJudging.scores?.[key] || 0) / 20) * 100} className="mt-2 h-1 bg-white/10" />
-                            </div>
-                          ))}
+                       <div className="mt-8 grid grid-cols-4 gap-4">
+                          {criteria.map((c) => {
+                            const score = currentJudging.scores?.[c.key] || 0;
+                            // Progress relative to 50-90 scale
+                            const progress = ((score - 50) / 40) * 100;
+                            return (
+                              <div key={c.key} className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+                                 <div className="text-[10px] font-black uppercase tracking-wider text-white/50">{c.label}</div>
+                                 <div className="mt-1 font-mono text-2xl font-bold">{score || '0'}</div>
+                                 <Progress value={progress > 0 ? progress : 0} className="mt-2 h-1 bg-white/10" />
+                              </div>
+                            );
+                          })}
                        </div>
                     </div>
                  </motion.div>
@@ -157,7 +181,7 @@ export default function LiveArenaPage() {
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                    <span className="font-medium text-lg">Juniper #105</span>
-                   <span className="font-mono font-bold text-primary">89.5</span>
+                   <span className="font-mono font-bold text-primary">345</span>
                 </div>
              </div>
           </div>
@@ -188,7 +212,14 @@ export default function LiveArenaPage() {
                      </div>
                      <div className="flex-1 overflow-hidden">
                         <p className="truncate font-bold tracking-tight">{item.treeName}</p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">{item.treeNumber} · {item.ownerName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] text-white/40 uppercase tracking-wider">{item.treeNumber} · {item.ownerName}</p>
+                          {item.predicate && (
+                            <span className={`text-[8px] font-bold uppercase ${getPredicateColor(item.predicate)}`}>
+                              · {item.predicate}
+                            </span>
+                          )}
+                        </div>
                      </div>
                      <div className="text-right">
                         <div className="font-mono text-xl font-black text-primary">{item.totalScore}</div>

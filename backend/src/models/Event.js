@@ -16,6 +16,20 @@ module.exports = (sequelize, DataTypes) => {
     description: {
       type: DataTypes.TEXT
     },
+    banner_url: {
+      type: DataTypes.STRING
+    },
+    rewards: {
+      type: DataTypes.TEXT
+    },
+    categories: {
+      type: DataTypes.JSON, // Array of { name, description, price, minSize, maxSize }
+      defaultValue: []
+    },
+    contact_persons: {
+      type: DataTypes.JSON, // Array of { name, phone }
+      defaultValue: []
+    },
     start_date: {
       type: DataTypes.DATE
     },

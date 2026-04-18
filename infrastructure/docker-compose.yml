@@ -3,15 +3,15 @@ services:
     image: postgres:15-alpine
     container_name: bonsai-postgres
     environment:
-      POSTGRES_USER: bonsai_user
-      POSTGRES_PASSWORD: bonsai_pass
-      POSTGRES_DB: bonsai_db
+      POSTGRES_USER: ${POSTGRES_USER:-bonsai_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bonsai_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-bonsai_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bonsai_user -d bonsai_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bonsai_user} -d ${POSTGRES_DB:-bonsai_db}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -23,8 +23,8 @@ services:
     container_name: bonsai-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -39,19 +39,21 @@ services:
       dockerfile: Dockerfile
     container_name: bonsai-backend
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: bonsai_db
-      DB_USER: bonsai_user
-      DB_PASS: bonsai_pass
+      DB_NAME: ${POSTGRES_DB:-bonsai_db}
+      DB_USER: ${POSTGRES_USER:-bonsai_user}
+      DB_PASS: ${POSTGRES_PASSWORD:-bonsai_pass}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: bonsai-images
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_USE_SSL: "false"
-      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       PORT: 3000
     ports:
       - "3000:3000"
@@ -75,19 +77,18 @@ services:
     profiles:
       - tools
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: bonsai_db
-      DB_USER: bonsai_user
-      DB_PASS: bonsai_pass
+      DB_NAME: ${POSTGRES_DB:-bonsai_db}
+      DB_USER: ${POSTGRES_USER:-bonsai_user}
+      DB_PASS: ${POSTGRES_PASSWORD:-bonsai_pass}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: bonsai-images
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_USE_SSL: "false"
-      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production}
       PORT: 3000
     depends_on:
       postgres:

@@ -1,28 +1,50 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { mockCertificates, mockBonsai } from "@/data/mockData";
-import { getBonsaiImage } from "@/components/BonsaiCard";
 import { Shield, ShieldCheck, Search } from "lucide-react";
 import { motion } from "framer-motion";
+import api from "@/services/api";
+
+interface CertificateResult {
+  certificateNumber: string;
+  ownerName: string;
+  treeSpecies: string;
+  category: string;
+  rank: number;
+  eventName: string;
+  issueDate: string;
+  verified: boolean;
+  photoUrl?: string | null;
+}
 
 export default function VerifyCertificatePage() {
   const [searchParams] = useSearchParams();
-  const initialCert = searchParams.get("cert") || "";
-  const [certNumber, setCertNumber] = useState(initialCert);
-  const [result, setResult] = useState<typeof mockCertificates[0] | null>(
-    initialCert ? mockCertificates.find(c => c.certificateNumber === initialCert) || null : null
-  );
-  const [searched, setSearched] = useState(!!initialCert);
+  const [certNumber, setCertNumber] = useState(searchParams.get("cert") || "");
+  const [result, setResult] = useState<CertificateResult | null>(null);
+  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = () => {
-    const found = mockCertificates.find(
-      (c) => c.certificateNumber.toLowerCase() === certNumber.trim().toLowerCase()
-    );
-    setResult(found || null);
-    setSearched(true);
+  const handleSearch = async () => {
+    if (!certNumber.trim()) return;
+    setLoading(true);
+    setSearched(false);
+    try {
+      const res = await api.get<CertificateResult>("/public/certificates/verify", {
+        params: { cert: certNumber.trim() },
+      });
+      setResult(res.data);
+    } catch {
+      setResult(null);
+    } finally {
+      setLoading(false);
+      setSearched(true);
+    }
   };
 
-  const bonsai = result ? mockBonsai.find(b => b.id === result.bonsaiId) : null;
+  // Auto-search on mount if cert param is present
+  useState(() => {
+    const cert = searchParams.get("cert");
+    if (cert) handleSearch();
+  });
 
   return (
     <div className="growth-ring-bg min-h-[80vh] py-20">
@@ -51,14 +73,15 @@ export default function VerifyCertificatePage() {
             />
             <button
               onClick={handleSearch}
-              className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+              disabled={loading}
+              className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
             >
               <Search className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {searched && result && bonsai && (
+        {searched && result && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -71,8 +94,12 @@ export default function VerifyCertificatePage() {
             </div>
 
             <div className="grid gap-6 p-6 sm:grid-cols-[160px,1fr]">
-              <div className="aspect-[4/5] overflow-hidden rounded-lg border">
-                <img src={getBonsaiImage(bonsai.id)} alt={bonsai.treeName} className="h-full w-full object-cover" />
+              <div className="aspect-[4/5] overflow-hidden rounded-lg border bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
+                {result.photoUrl ? (
+                  <img src={result.photoUrl} alt="Bonsai" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-5xl select-none">🌿</span>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -113,7 +140,7 @@ export default function VerifyCertificatePage() {
           </motion.div>
         )}
 
-        {searched && !result && (
+        {searched && !result && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

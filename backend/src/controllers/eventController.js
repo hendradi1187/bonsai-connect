@@ -85,6 +85,10 @@ const formatEvent = async (event) => {
     name: event.name,
     location: event.location || 'Depok',
     description: event.description || '',
+    bannerUrl: event.banner_url || '',
+    rewards: event.rewards || '',
+    categories: event.categories || [],
+    contactPersons: event.contact_persons || [],
     startDate: event.start_date || event.date,
     endDate: event.end_date || event.start_date || event.date,
     publishAt: event.publish_at || event.createdAt,
@@ -162,6 +166,10 @@ exports.createEvent = async (req, res) => {
       name,
       location,
       description,
+      bannerUrl,
+      rewards,
+      categories,
+      contactPersons,
       startDate,
       endDate,
       publishAt,
@@ -192,6 +200,10 @@ exports.createEvent = async (req, res) => {
       name,
       location: location || 'Depok',
       description: description || '',
+      banner_url: bannerUrl || null,
+      rewards: rewards || null,
+      categories: categories || [],
+      contact_persons: contactPersons || [],
       start_date: start,
       end_date: end,
       publish_at: publish,
@@ -217,6 +229,10 @@ exports.updateEvent = async (req, res) => {
       name,
       location,
       description,
+      bannerUrl,
+      rewards,
+      categories,
+      contactPersons,
       startDate,
       endDate,
       publishAt,
@@ -247,6 +263,10 @@ exports.updateEvent = async (req, res) => {
       name: name ?? event.name,
       location: location ?? event.location,
       description: description ?? event.description,
+      banner_url: bannerUrl ?? event.banner_url,
+      rewards: rewards ?? event.rewards,
+      categories: categories ?? event.categories,
+      contact_persons: contactPersons ?? event.contact_persons,
       start_date: nextStartDate,
       end_date: nextEndDate,
       publish_at: nextPublishAt,
@@ -258,5 +278,38 @@ exports.updateEvent = async (req, res) => {
     res.json(await formatEvent(event));
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+exports.archiveEvent = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    await event.update({ status: 'finished' });
+    res.json({ message: 'Event diarsipkan', status: 'finished' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id, {
+      include: [{ model: Participant, attributes: ['id'] }]
+    });
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    const participantCount = event.Participants?.length ?? 0;
+    if (participantCount > 0) {
+      return res.status(409).json({
+        message: `Event tidak bisa dihapus karena sudah memiliki ${participantCount} peserta. Arsipkan event (status: finished) jika tidak diperlukan lagi.`
+      });
+    }
+
+    await event.destroy();
+    res.json({ message: 'Event deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

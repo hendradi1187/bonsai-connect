@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import ppbiLogo from "@/assets/ppbi-logo.png";
 
 const items = [
-  { title: "Scoring", url: "/judge", icon: Gavel },
-  { title: "Ranking", url: "/judge/ranking", icon: Trophy },
-  { title: "Live Arena", url: "/live", icon: Play },
+  { title: "nav.scoring", url: "/judge", icon: Gavel },
+  { title: "nav.ranking", url: "/judge/ranking", icon: Trophy },
+  { title: "nav.live_arena", url: "/live", icon: Play },
 ];
 
 export function JudgeSidebar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -26,7 +28,7 @@ export function JudgeSidebar() {
         <div className="flex items-center gap-3">
           <img src={ppbiLogo} alt="PPBI" className="h-10 w-10" />
           <div>
-            <div className="font-display text-sm font-semibold tracking-tight">Judge Workspace</div>
+            <div className="font-display text-sm font-semibold tracking-tight">{t('judge.workspace')}</div>
             <div className="text-xs text-muted-foreground">{user?.name}</div>
           </div>
         </div>
@@ -42,18 +44,18 @@ export function JudgeSidebar() {
             activeClassName="bg-primary/10 text-primary font-medium"
           >
             <item.icon className="h-4 w-4" />
-            <span>{item.title}</span>
+            <span>{t(item.title)}</span>
           </NavLink>
         ))}
       </nav>
 
       <div className="border-t p-4">
         <div className="mb-3 rounded-xl border bg-muted/20 p-3 text-xs text-muted-foreground">
-          Mode anonim aktif. Identitas peserta disembunyikan dari juri.
+          {t('judge.anonymous_mode')}
         </div>
         <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {t('common.logout')}
         </Button>
       </div>
     </aside>

@@ -52,6 +52,7 @@ interface ParticipantRow {
     species: string;
     sizeCategory: string;
     photoUrl?: string | null;
+    accessories?: string[];
   };
 }
 
@@ -87,7 +88,8 @@ export default function AdminParticipantsPage() {
   const [selectedParticipant, setSelectedParticipant] = useState<ParticipantRow | null>(null);
 
   const [newParticipant, setNewParticipant] = useState({ name: "", phone: "", city: "" });
-  const [newTree, setNewTree] = useState({ treeName: "", species: "", sizeCategory: "Large", photoUrl: "" });
+  const ACCESSORY_OPTIONS = ["Meja", "Batu", "Rumput Pendamping"] as const;
+  const [newTree, setNewTree] = useState({ treeName: "", species: "", sizeCategory: "Large", photoUrl: "", accessories: [] as string[] });
   const [overrideForm, setOverrideForm] = useState({ judgingNumber: "", judgingNumberStatus: "confirmed" as "reserved" | "confirmed" });
 
   const { data: participants, isLoading } = useGet<ParticipantRow[]>(["participants"], "/participants");
@@ -144,8 +146,18 @@ export default function AdminParticipantsPage() {
       species: p.bonsai?.species || "",
       sizeCategory: p.bonsai?.sizeCategory || "Large",
       photoUrl: p.bonsai?.photoUrl || "",
+      accessories: p.bonsai?.accessories || [],
     });
     setIsCheckInOpen(true);
+  };
+
+  const toggleCheckInAccessory = (item: string) => {
+    setNewTree(prev => ({
+      ...prev,
+      accessories: prev.accessories.includes(item)
+        ? prev.accessories.filter(a => a !== item)
+        : [...prev.accessories, item],
+    }));
   };
 
   const openOverride = (p: ParticipantRow) => {
@@ -303,7 +315,14 @@ export default function AdminParticipantsPage() {
                         <div className="space-y-1 text-sm">
                           <p className="font-medium">{p.bonsai.treeName}</p>
                           <p className="text-xs italic text-muted-foreground">{p.bonsai.species}</p>
-                          <Badge variant="outline">{p.bonsai.sizeCategory}</Badge>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="outline">{p.bonsai.sizeCategory}</Badge>
+                            {p.bonsai.accessories && p.bonsai.accessories.length > 0 && (
+                              p.bonsai.accessories.map((acc) => (
+                                <Badge key={acc} variant="secondary" className="text-[10px] px-1.5 py-0">{acc}</Badge>
+                              ))
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -425,6 +444,33 @@ export default function AdminParticipantsPage() {
               >
                 {["Mame", "Small", "Medium", "Large", "XL"].map((s) => <option key={s}>{s}</option>)}
               </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Perlengkapan Pendamping</label>
+              <div className="flex flex-wrap gap-2">
+                {ACCESSORY_OPTIONS.map((item) => {
+                  const checked = newTree.accessories.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleCheckInAccessory(item)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                        checked
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-input bg-background text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center text-[9px] ${
+                        checked ? "bg-primary border-primary text-primary-foreground" : "border-input"
+                      }`}>
+                        {checked ? "✓" : ""}
+                      </span>
+                      {item}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <DialogFooter>
